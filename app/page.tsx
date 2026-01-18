@@ -81,7 +81,7 @@ export default function Home() {
     if (!welcomeSent && messages.length === 0 && currentSessionId) {
       setWelcomeSent(true);
       addMessage({
-        content: "Hello! I'm Complyx, your AI assistant for IFRS S1 & S2 compliance assessment. I can help you understand IFRS requirements, answer questions about compliance, and guide you through the assessment process. How can I assist you today?",
+        content: "Hello! I'm Complyx, your AI assistant for IFRS standards and general accounting knowledge, with particular expertise in IFRS S1 (Sustainability-related Financial Information Disclosures) and IFRS S2 (Climate-related Disclosures). I can help you understand IFRS requirements, answer questions about compliance and accounting standards, and guide you through various aspects of financial reporting. How can I assist you today?",
         isUser: false,
       });
     }
@@ -547,7 +547,7 @@ export default function Home() {
         <ChatInput
           onSendMessage={handleSendMessage}
           onFileUpload={handleFileUpload}
-          placeholder="Ask me anything about IFRS S1 & S2 compliance..."
+          placeholder="Ask me anything about IFRS standards, accounting, or compliance..."
         />
       </div>
     </div>

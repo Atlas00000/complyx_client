@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'Complyx - IFRS S1 & S2 Readiness Assessment',
-  description: 'AI-powered conversational assistant for IFRS S1 & S2 compliance assessment',
+  description: 'AI-powered conversational assistant for IFRS standards and accounting knowledge, with expertise in IFRS S1 & S2 compliance',
 }
 
 export default function RootLayout({
