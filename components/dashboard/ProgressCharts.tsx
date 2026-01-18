@@ -1,15 +1,79 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useAssessmentStore } from '@/stores/assessmentStore';
+import { DashboardAPI } from '@/lib/api/dashboardApi';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
 interface ProgressChartsProps {
   history?: Array<{ date: string; progress: number; answeredCount: number }>;
   showAreaChart?: boolean;
+  userId?: string;
+  assessmentId?: string;
+  autoFetch?: boolean; // Auto-fetch historical data from API
 }
 
-export function ProgressCharts({ history, showAreaChart = true }: ProgressChartsProps) {
-  const { progress, answeredCount, totalCount, answers } = useAssessmentStore();
+export function ProgressCharts({ 
+  history, 
+  showAreaChart = true,
+  userId,
+  assessmentId,
+  autoFetch = false,
+}: ProgressChartsProps) {
+  const { progress, answeredCount, totalCount, answers, setProgress } = useAssessmentStore();
+  const [apiHistory, setApiHistory] = useState<Array<{ date: string; progress: number; answeredCount: number }>>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Auto-fetch historical data from API if enabled
+  useEffect(() => {
+    if (autoFetch) {
+      setLoading(true);
+      setError(null);
+      DashboardAPI.getDashboardData({ userId, assessmentId })
+        .then((data) => {
+          // Update progress from API
+          if (data.progress) {
+            setProgress(
+              data.progress.percentage,
+              data.progress.answeredCount,
+              data.progress.totalCount
+            );
+          }
+
+          // Convert historical trends to chart data format
+          if (data.historicalTrends?.assessments) {
+            const historicalData = data.historicalTrends.assessments.map((assessment) => {
+              const date = typeof assessment.createdAt === 'string'
+                ? new Date(assessment.createdAt)
+                : assessment.createdAt;
+              return {
+                date: date.toISOString().split('T')[0],
+                progress: assessment.progress,
+                answeredCount: Math.round((assessment.progress / 100) * (data.progress?.totalCount || 0)),
+              };
+            });
+            setApiHistory(historicalData);
+          }
+
+          // Add current progress to history if not already present
+          if (data.progress && apiHistory.length === 0) {
+            setApiHistory([{
+              date: new Date().toISOString().split('T')[0],
+              progress: data.progress.percentage,
+              answeredCount: data.progress.answeredCount,
+            }]);
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to fetch historical data:', err);
+          setError(err instanceof Error ? err.message : 'Failed to load historical data');
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    }
+  }, [autoFetch, userId, assessmentId, setProgress, apiHistory.length]);
 
   // Generate mock history if not provided (based on answers)
   const generateHistory = (): Array<{ date: string; progress: number; answeredCount: number }> => {
@@ -58,18 +122,35 @@ export function ProgressCharts({ history, showAreaChart = true }: ProgressCharts
       return historyData;
     }
 
-    return history || [
+    return history || apiHistory.length > 0 ? apiHistory : [
       { date: new Date().toISOString().split('T')[0], progress, answeredCount },
     ];
   };
 
-  const chartData = generateHistory();
+  // Use provided history, then API history, then generated history
+  const chartData = history || apiHistory.length > 0 ? apiHistory : generateHistory();
 
   // Format date for display
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
+
+  if (loading && autoFetch) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-gray-500">Loading progress history...</div>
+      </div>
+    );
+  }
+
+  if (error && autoFetch) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-red-500">Error: {error}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

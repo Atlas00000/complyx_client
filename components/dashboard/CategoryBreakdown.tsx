@@ -1,17 +1,78 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useAssessmentStore, AssessmentScore } from '@/stores/assessmentStore';
+import { DashboardAPI, AssessmentScore as DashboardAssessmentScore } from '@/lib/api/dashboardApi';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 
 interface CategoryBreakdownProps {
   scores?: AssessmentScore | null;
   showComparison?: boolean;
   viewMode?: 'bar' | 'radar';
+  userId?: string;
+  assessmentId?: string;
+  autoFetch?: boolean; // Auto-fetch from API if scores not provided
 }
 
-export function CategoryBreakdown({ scores: propScores, showComparison = true, viewMode = 'bar' }: CategoryBreakdownProps) {
-  const { scores: storeScores } = useAssessmentStore();
-  const scores = propScores || storeScores;
+export function CategoryBreakdown({ 
+  scores: propScores, 
+  showComparison = true, 
+  viewMode = 'bar',
+  userId,
+  assessmentId,
+  autoFetch = false,
+}: CategoryBreakdownProps) {
+  const { scores: storeScores, setScores } = useAssessmentStore();
+  const [apiScores, setApiScores] = useState<DashboardAssessmentScore | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Auto-fetch scores from API if enabled and no scores provided
+  useEffect(() => {
+    if (autoFetch && !propScores && !storeScores) {
+      setLoading(true);
+      setError(null);
+      DashboardAPI.getReadinessScore({ userId, assessmentId })
+        .then((data) => {
+          setApiScores(data);
+          // Update store with fetched scores
+          const mappedScores: AssessmentScore = {
+            overallScore: data.overallScore,
+            overallPercentage: data.overallPercentage,
+            categoryScores: data.categoryScores,
+            totalAnswered: data.totalAnswered,
+            totalQuestions: data.totalQuestions,
+          };
+          setScores(mappedScores);
+        })
+        .catch((err) => {
+          console.error('Failed to fetch category scores:', err);
+          setError(err instanceof Error ? err.message : 'Failed to load scores');
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    }
+  }, [autoFetch, propScores, storeScores, userId, assessmentId, setScores]);
+
+  // Use propScores first, then storeScores, then apiScores
+  const scores = propScores || storeScores || apiScores;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-gray-500">Loading category scores...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-red-500">Error: {error}</div>
+      </div>
+    );
+  }
 
   if (!scores || !scores.categoryScores || scores.categoryScores.length === 0) {
     return (

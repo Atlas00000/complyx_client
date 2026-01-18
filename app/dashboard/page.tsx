@@ -2,11 +2,13 @@
 
 import { useEffect } from 'react';
 import { useAssessmentStore } from '@/stores/assessmentStore';
+import { useAuthStore } from '@/stores/authStore';
 import { AssessmentDashboard } from '@/components/dashboard/AssessmentDashboard';
 import { ReadinessScore } from '@/components/dashboard/ReadinessScore';
 import { ProgressCharts } from '@/components/dashboard/ProgressCharts';
 import { CategoryBreakdown } from '@/components/dashboard/CategoryBreakdown';
 import { ComplianceMatrix } from '@/components/assessment/ComplianceMatrix';
+import { GapAnalysis } from '@/components/dashboard/GapAnalysis';
 import { ReportExport } from '@/components/dashboard/ReportExport';
 
 export default function DashboardPage() {
@@ -20,6 +22,8 @@ export default function DashboardPage() {
     answeredCount,
     totalCount,
   } = useAssessmentStore();
+  const { user } = useAuthStore();
+  const userId = user?.id;
 
   // Redirect to test-chat if no assessment started
   useEffect(() => {
@@ -37,25 +41,57 @@ export default function DashboardPage() {
       <div className="space-y-6">
         {/* Readiness Score */}
         <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-          <ReadinessScore scores={scores} showBreakdown />
+          <ReadinessScore 
+            scores={scores} 
+            showBreakdown 
+            userId={userId}
+            assessmentId={assessmentId || undefined}
+            autoFetch={!scores}
+          />
         </div>
 
         {/* Category Breakdown */}
         <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-          <CategoryBreakdown scores={scores} viewMode="bar" showComparison />
+          <CategoryBreakdown 
+            scores={scores} 
+            viewMode="bar" 
+            showComparison 
+            userId={userId}
+            assessmentId={assessmentId || undefined}
+            autoFetch={!scores}
+          />
         </div>
 
         {/* Progress Charts */}
         <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-          <ProgressCharts showAreaChart />
+          <ProgressCharts 
+            showAreaChart 
+            userId={userId}
+            assessmentId={assessmentId || undefined}
+            autoFetch={true}
+          />
         </div>
 
         {/* Compliance Matrix */}
-        {hasData && ifrsStandard && (
+        {(hasData || userId) && ifrsStandard && (
           <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
             <ComplianceMatrix
               ifrsStandard={ifrsStandard}
               answers={answers.map(a => ({ questionId: a.questionId, value: a.value }))}
+              userId={userId}
+              assessmentId={assessmentId || undefined}
+              useDashboardApi={!hasData && !!userId}
+            />
+          </div>
+        )}
+
+        {/* Gap Analysis */}
+        {hasData && ifrsStandard && (
+          <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+            <GapAnalysis
+              ifrsStandard={ifrsStandard}
+              assessmentId={assessmentId || undefined}
+              autoFetch={true}
             />
           </div>
         )}

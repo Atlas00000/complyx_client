@@ -2,14 +2,25 @@
 
 import { useEffect, useState } from 'react';
 import { ComplianceAPI, ComplianceMatrix as ComplianceMatrixType, RequirementStatus } from '@/lib/api/complianceApi';
+import { DashboardAPI, ComplianceMatrix as DashboardComplianceMatrix } from '@/lib/api/dashboardApi';
 
 interface ComplianceMatrixProps {
   ifrsStandard: 'S1' | 'S2';
-  answers: Array<{ questionId: string; value: string }>;
+  answers?: Array<{ questionId: string; value: string }>;
   onRequirementClick?: (requirement: RequirementStatus) => void;
+  userId?: string;
+  assessmentId?: string;
+  useDashboardApi?: boolean; // Use dashboard API instead of compliance API
 }
 
-export function ComplianceMatrix({ ifrsStandard, answers, onRequirementClick }: ComplianceMatrixProps) {
+export function ComplianceMatrix({ 
+  ifrsStandard, 
+  answers = [], 
+  onRequirementClick,
+  userId,
+  assessmentId,
+  useDashboardApi = false,
+}: ComplianceMatrixProps) {
   const [matrix, setMatrix] = useState<ComplianceMatrixType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -19,8 +30,42 @@ export function ComplianceMatrix({ ifrsStandard, answers, onRequirementClick }: 
       try {
         setLoading(true);
         setError(null);
-        const data = await ComplianceAPI.getComplianceMatrix(ifrsStandard, answers);
-        setMatrix(data);
+
+        // Use dashboard API if enabled and userId/assessmentId provided
+        if (useDashboardApi && (userId || assessmentId)) {
+          const data = await DashboardAPI.getComplianceMatrix({ userId, assessmentId, ifrsStandard });
+          // Convert dashboard API format to compliance API format
+          const convertedMatrix: ComplianceMatrixType = {
+            ifrsStandard: data.ifrsStandard,
+            overallCompliance: data.overallCompliance,
+            requirements: data.requirements.map((req) => ({
+              requirementId: req.requirementId,
+              code: req.code,
+              title: req.title,
+              category: req.category,
+              compliant: req.compliant,
+              score: req.score,
+              answeredQuestions: req.answeredQuestions,
+              totalQuestions: req.totalQuestions,
+              level: req.level,
+              mandatory: req.mandatory,
+            })),
+            categoryBreakdown: {
+              governance: data.byCategory.governance,
+              strategy: data.byCategory.strategy,
+              risk: data.byCategory.risk,
+              metrics: data.byCategory.metrics,
+            },
+          };
+          setMatrix(convertedMatrix);
+        } else if (answers.length > 0) {
+          // Use compliance API with answers
+          const data = await ComplianceAPI.getComplianceMatrix(ifrsStandard, answers);
+          setMatrix(data);
+        } else {
+          // No data available
+          setMatrix(null);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load compliance matrix');
       } finally {
@@ -28,10 +73,8 @@ export function ComplianceMatrix({ ifrsStandard, answers, onRequirementClick }: 
       }
     };
 
-    if (answers.length > 0) {
-      loadMatrix();
-    }
-  }, [ifrsStandard, answers]);
+    loadMatrix();
+  }, [ifrsStandard, answers, userId, assessmentId, useDashboardApi]);
 
   if (loading) {
     return (
