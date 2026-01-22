@@ -1,26 +1,28 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
+import { motion } from 'framer-motion';
 import { forgotPassword } from '@/lib/api/authApi';
-import Link from 'next/link';
+import { Form, FormField, Input, Button } from '@/components/ui';
 
 export default function ForgotPasswordForm() {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(false);
+    setIsLoading(true);
 
     if (!email) {
       setError('Please enter your email address');
+      setIsLoading(false);
       return;
     }
 
-    setIsLoading(true);
     try {
       await forgotPassword({ email });
       setSuccess(true);
@@ -31,76 +33,68 @@ export default function ForgotPasswordForm() {
     }
   };
 
+  if (success) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="text-center space-y-4"
+      >
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+          className="w-16 h-16 rounded-full bg-secondary text-white flex items-center justify-center mx-auto mb-4"
+        >
+          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        </motion.div>
+        <h3 className="text-h5 text-gray-900 font-semibold">Check your email</h3>
+        <p className="text-body text-gray-600">
+          We've sent a password reset link to <strong>{email}</strong>
+        </p>
+        <p className="text-sm text-gray-500">
+          Didn't receive the email? Check your spam folder or try again.
+        </p>
+      </motion.div>
+    );
+  }
+
   return (
-    <div className="w-full max-w-md mx-auto">
-      <div className="bg-white rounded-lg shadow-lg p-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Reset Password</h2>
+    <Form onSubmit={handleSubmit}>
+      <div className="space-y-5">
+        <FormField
+          label="Email"
+          error={error || undefined}
+          helperText="Enter the email address associated with your account"
+          required
+        >
+          <Input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            disabled={isLoading}
+            leftIcon={
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+              </svg>
+            }
+          />
+        </FormField>
 
-        {success ? (
-          <div className="space-y-4">
-            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md">
-              <p className="font-medium">Email sent!</p>
-              <p className="text-sm mt-1">
-                If an account exists with this email, a password reset link has been sent.
-                Please check your inbox and follow the instructions.
-              </p>
-            </div>
-            <Link
-              href="/auth/login"
-              className="block text-center text-blue-600 hover:text-blue-800 font-medium"
-            >
-              Back to login
-            </Link>
-          </div>
-        ) : (
-          <>
-            <p className="text-gray-600 mb-6">
-              Enter your email address and we'll send you a link to reset your password.
-            </p>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="you@example.com"
-                  required
-                  disabled={isLoading}
-                />
-              </div>
-
-              {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
-                  {error}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {isLoading ? 'Sending...' : 'Send Reset Link'}
-              </button>
-            </form>
-
-            <div className="mt-6 text-center">
-              <Link
-                href="/auth/login"
-                className="text-sm text-blue-600 hover:text-blue-800"
-              >
-                Back to login
-              </Link>
-            </div>
-          </>
-        )}
+        <Button
+          type="submit"
+          variant="primary"
+          size="large"
+          fullWidth
+          isLoading={isLoading}
+          className="mt-6"
+        >
+          {isLoading ? 'Sending...' : 'Send Reset Link'}
+        </Button>
       </div>
-    </div>
+    </Form>
   );
 }

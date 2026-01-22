@@ -1,9 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { useChatStore } from '@/stores/chatStore';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useChatSearch } from '@/hooks/useChatSearch';
+import { Header, Container } from '@/components/layout';
+import { Button, Card } from '@/components/ui';
 import ChatInterface from '@/components/chat/ChatInterface';
 import MessageBubble from '@/components/chat/MessageBubble';
 import ChatInput from '@/components/chat/ChatInput';
@@ -43,7 +46,6 @@ export default function Home() {
   const [regeneratingMessageId, setRegeneratingMessageId] = useState<string | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
 
-  // Chat search functionality
   const {
     searchQuery,
     setSearchQuery,
@@ -90,7 +92,6 @@ export default function Home() {
   // Initialize IFRS standard if not set
   useEffect(() => {
     if (!setIfrsStandard) return;
-    // Set default to S1 for context
     const storedStandard = localStorage.getItem('complyx-ifrs-standard') as 'S1' | 'S2' | null;
     if (!storedStandard) {
       setIfrsStandard('S1');
@@ -112,31 +113,23 @@ export default function Home() {
     const messageIndex = messages.findIndex((m) => m.id === messageId);
     if (messageIndex === -1 || !messages[messageIndex].isUser) return;
 
-    // Don't edit if content is the same
     if (messages[messageIndex].content.trim() === newContent.trim()) {
       setEditingMessageId(null);
       return;
     }
 
-    // Remove the old user message and any following AI responses
-    // Find all messages after this user message until the next user message
     const messagesToRemove: string[] = [messageId];
     for (let i = messageIndex + 1; i < messages.length; i++) {
       if (messages[i].isUser) break;
       messagesToRemove.push(messages[i].id);
     }
 
-    // Remove all messages that need to be removed
     messagesToRemove.forEach((id) => removeMessage(id));
-
-    // Update the user message with new content
     updateMessage(messageId, { content: newContent });
-
     setEditingMessageId(null);
     setIsTyping(true);
 
     try {
-      // Build conversation history up to this message (exclusive)
       const conversationHistory = messages
         .slice(0, messageIndex)
         .map((m) => ({
@@ -144,7 +137,6 @@ export default function Home() {
           content: m.content,
         }));
 
-      // Send the edited message
       const response = await fetch(`${API_BASE_URL}/api/chat`, {
         method: 'POST',
         headers: {
@@ -188,7 +180,6 @@ export default function Home() {
     const messageIndex = messages.findIndex((m) => m.id === messageId);
     if (messageIndex === -1 || messages[messageIndex].isUser) return;
 
-    // Find the user message that triggered this response
     let userMessageIndex = -1;
     for (let i = messageIndex - 1; i >= 0; i--) {
       if (messages[i].isUser) {
@@ -200,15 +191,11 @@ export default function Home() {
     if (userMessageIndex === -1) return;
 
     const userMessage = messages[userMessageIndex];
-    
-    // Remove the AI message to regenerate
     removeMessage(messageId);
     setRegeneratingMessageId(messageId);
-
     setIsTyping(true);
 
     try {
-      // Build conversation history up to the user message (exclusive of the message being regenerated)
       const conversationHistory = messages
         .slice(0, messageIndex)
         .map((m) => ({
@@ -216,7 +203,6 @@ export default function Home() {
           content: m.content,
         }));
 
-      // Send regenerate request
       const response = await fetch(`${API_BASE_URL}/api/chat`, {
         method: 'POST',
         headers: {
@@ -257,7 +243,6 @@ export default function Home() {
     }
   };
 
-  // Update session preview and message count when messages change
   useEffect(() => {
     if (currentSessionId && messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
@@ -272,24 +257,22 @@ export default function Home() {
     const newSessionId = createSession();
     setCurrentSession(newSessionId);
     setActiveSession(newSessionId);
-    setWelcomeSent(false); // Reset welcome message flag for new session
+    setWelcomeSent(false);
   };
 
   const handleSelectSession = (sessionId: string) => {
     setActiveSession(sessionId);
     setCurrentSession(sessionId);
-    setWelcomeSent(false); // Reset welcome message flag when switching sessions
+    setWelcomeSent(false);
   };
 
   const handleSendMessage = async (content: string) => {
-    // Ensure we have a session
     if (!currentSessionId) {
       const newSessionId = createSession();
       setCurrentSession(newSessionId);
       setActiveSession(newSessionId);
     }
 
-    // Add user message
     addMessage({
       content,
       isUser: true,
@@ -299,7 +282,6 @@ export default function Home() {
     setIsTyping(true);
 
     try {
-      // Send to chat API with RAG enabled for context-aware responses
       const response = await fetch(`${API_BASE_URL}/api/chat`, {
         method: 'POST',
         headers: {
@@ -312,7 +294,7 @@ export default function Home() {
             content: m.content,
           })),
           stream: false,
-          useRAG: true, // Enable RAG for context-aware responses using knowledge base
+          useRAG: true,
           ragTopK: 5,
           ragMinScore: 0.5,
         }),
@@ -344,14 +326,13 @@ export default function Home() {
 
   const handleFileUpload = (file: File) => {
     console.log('File uploaded:', file.name);
-    // TODO: Implement file upload logic
   };
 
   const handleClearChat = () => {
     if (confirm('Are you sure you want to clear the chat? This will remove all messages.')) {
       clearMessages();
-      setWelcomeSent(false); // Reset welcome message flag so it shows again
-      resetSearch(); // Clear search when clearing chat
+      setWelcomeSent(false);
+      resetSearch();
     }
   };
 
@@ -371,7 +352,6 @@ export default function Home() {
     }
   };
 
-  // Scroll to highlighted message when navigating search results
   useEffect(() => {
     if (currentResult?.messageId) {
       const element = document.getElementById(`message-${currentResult.messageId}`);
@@ -381,22 +361,18 @@ export default function Home() {
     }
   }, [currentResult]);
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Cmd/Ctrl + K to open search
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setIsSearchOpen(true);
       }
       
-      // Escape to close search
       if (e.key === 'Escape' && isSearchOpen) {
         setIsSearchOpen(false);
         resetSearch();
       }
 
-      // Navigate search results when search is open and has results
       if (isSearchOpen && hasResults && searchQuery) {
         if ((e.metaKey || e.ctrlKey) && e.key === 'g') {
           e.preventDefault();
@@ -432,82 +408,94 @@ export default function Home() {
 
       {/* Search Results Info */}
       {isSearchOpen && hasResults && searchQuery && (
-        <div className="absolute top-16 left-1/2 transform -translate-x-1/2 bg-white border border-gray-200 rounded-lg px-4 py-2 shadow-lg z-10 flex items-center gap-4">
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="absolute top-16 left-1/2 transform -translate-x-1/2 bg-white border border-gray-200 rounded-lg px-4 py-2 shadow-lg z-10 flex items-center gap-4"
+        >
           <span className="text-sm text-gray-600">
             {currentMatchIndex + 1} of {searchResults.length} messages ({totalMatches} matches)
           </span>
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              variant="ghost"
+              size="small"
               onClick={goToPreviousMatch}
-              className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded transition-colors"
               title="Previous (Shift + Cmd/Ctrl + G)"
             >
               ↑ Prev
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
+              size="small"
               onClick={goToNextMatch}
-              className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded transition-colors"
               title="Next (Cmd/Ctrl + G)"
             >
               Next ↓
-            </button>
+            </Button>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Complyx</h1>
-          <p className="text-sm text-gray-600">IFRS S1 & S2 Readiness Assessment Assistant</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
+      <Header
+        title="Complyx"
+        subtitle="IFRS S1 & S2 Readiness Assessment Assistant"
+        leftActions={
+          <Button
+            variant="ghost"
+            size="medium"
             onClick={() => setIsSessionListOpen(true)}
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-semibold flex items-center gap-2"
             title="Chat history"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
             History
-          </button>
-          {messages.length > 0 && (
-            <>
-              <button
-                onClick={handleSearchToggle}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-semibold flex items-center gap-2"
-                title="Search messages (Cmd/Ctrl + K)"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                Search
-              </button>
-              <button
-                onClick={handleClearChat}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-semibold flex items-center gap-2"
-                title="Clear chat history"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-                Clear Chat
-              </button>
-            </>
-          )}
-          <a
-            href="/dashboard"
-            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm font-semibold"
-          >
-            Dashboard
-          </a>
-        </div>
-      </div>
+          </Button>
+        }
+        rightActions={
+          <div className="flex items-center gap-3">
+            {messages.length > 0 && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="medium"
+                  onClick={handleSearchToggle}
+                  title="Search messages (Cmd/Ctrl + K)"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  Search
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="medium"
+                  onClick={handleClearChat}
+                  title="Clear chat history"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Clear Chat
+                </Button>
+              </>
+            )}
+            <Button
+              variant="primary"
+              size="medium"
+              onClick={() => window.location.href = '/dashboard'}
+            >
+              Dashboard
+            </Button>
+          </div>
+        }
+      />
 
       {/* Chat Interface */}
-      <div className="flex-1 overflow-hidden flex flex-col">
-        <div className="flex-1 overflow-hidden">
+      <div className="flex-1 min-h-0 flex flex-col">
+        <div className="flex-1 min-h-0">
           <ChatInterface>
             {messages.map((message) => {
               const isHighlighted = currentResult?.messageId === message.id;
@@ -534,7 +522,7 @@ export default function Home() {
           </ChatInterface>
         </div>
 
-        {/* Suggested Prompts - shown when few/no messages */}
+        {/* Suggested Prompts */}
         {messages.length <= 1 && (
           <SuggestedPrompts
             onSelectPrompt={handleSendMessage}

@@ -2,26 +2,365 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom Properties (CSS Variables) */
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+  /* Colors */
+  --color-primary: #2563EB;
+  --color-primary-light: #3B82F6;
+  --color-primary-dark: #1E40AF;
+  --color-secondary: #10B981;
+  --color-secondary-light: #34D399;
+  --color-secondary-dark: #059669;
+  --color-accent: #8B5CF6;
+  --color-accent-light: #A78BFA;
+  --color-accent-dark: #7C3AED;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+  
+  /* Neutral Colors */
+  --color-gray-50: #F9FAFB;
+  --color-gray-100: #F3F4F6;
+  --color-gray-200: #E5E7EB;
+  --color-gray-300: #D1D5DB;
+  --color-gray-400: #9CA3AF;
+  --color-gray-500: #6B7280;
+  --color-gray-600: #4B5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1F2937;
+  --color-gray-900: #111827;
+  
+  /* Text Colors */
+  --color-text-primary: #111827;
+  --color-text-secondary: #4B5563;
+  --color-text-tertiary: #6B7280;
+  --color-text-disabled: #9CA3AF;
+  --color-text-inverse: #FFFFFF;
+  
+  /* Background Colors */
+  --color-bg-primary: #FFFFFF;
+  --color-bg-secondary: #F9FAFB;
+  --color-bg-tertiary: #F3F4F6;
+  --color-bg-elevated: #FFFFFF;
+  
+  /* Border Colors */
+  --color-border-default: #E5E7EB;
+  --color-border-focus: #2563EB;
+  --color-border-error: #EF4444;
+  --color-border-success: #10B981;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  
+  /* Colored Shadows */
+  --shadow-primary: 0 4px 14px 0 rgba(37, 99, 235, 0.15);
+  --shadow-primary-lg: 0 8px 20px 0 rgba(37, 99, 235, 0.2);
+  --shadow-secondary: 0 4px 14px 0 rgba(16, 185, 129, 0.15);
+  --shadow-accent: 0 4px 14px 0 rgba(139, 92, 246, 0.15);
+  
+  /* Spacing */
+  --spacing-base: 4px;
+  
+  /* Border Radius */
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.375rem;
+  --radius: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2rem;
+  
+  /* Transitions */
+  --transition-micro: 100ms;
+  --transition-standard: 200ms;
+  --transition-moderate: 300ms;
+  --transition-extended: 400ms;
+  
+  /* Timing Functions */
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  
+  /* Z-Index Scale */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
+/* Base Styles */
+@layer base {
+  * {
+    @apply border-gray-200;
+  }
+  
+  html {
+    @apply antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  body {
+    @apply bg-gray-50 text-gray-900;
+    @apply font-sans;
+    @apply text-body;
+    @apply leading-normal;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+  }
+  
+  /* Typography */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold text-gray-900;
+    @apply leading-tight;
+  }
+  
+  h1 {
+    @apply text-h1;
+  }
+  
+  h2 {
+    @apply text-h2;
+  }
+  
+  h3 {
+    @apply text-h3;
+  }
+  
+  h4 {
+    @apply text-h4;
+  }
+  
+  h5 {
+    @apply text-h5;
+  }
+  
+  h6 {
+    @apply text-h6;
+  }
+  
+  p {
+    @apply text-body text-gray-600;
+    @apply leading-relaxed;
+  }
+  
+  a {
+    @apply text-primary;
+    @apply transition-all duration-200 ease-out;
+    @apply hover:text-primary-dark;
+  }
+  
+  /* Focus Styles */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2;
+  }
+  
+  /* Selection */
+  ::selection {
+    @apply bg-primary-light text-white;
+  }
+  
+  /* Scrollbar Styling */
+  ::-webkit-scrollbar {
+    @apply w-2 h-2;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-100;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full;
+    @apply hover:bg-gray-400;
+  }
+  
+  /* Reduced Motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+/* Component Styles */
+@layer components {
+  /* Button Base Styles */
+  .btn {
+    @apply inline-flex items-center justify-center;
+    @apply font-semibold;
+    @apply rounded-lg;
+    @apply transition-all duration-200 ease-out;
+    @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  
+  .btn-primary {
+    @apply bg-primary text-white;
+    @apply hover:bg-primary-dark;
+    @apply focus:ring-primary;
+    @apply active:scale-[0.98];
+    @apply shadow-primary hover:shadow-primary-lg;
+  }
+  
+  .btn-secondary {
+    @apply bg-gray-100 text-gray-700 border border-gray-200;
+    @apply hover:bg-gray-200 hover:border-gray-300;
+    @apply focus:ring-gray-500;
+    @apply active:scale-[0.98];
+  }
+  
+  .btn-ghost {
+    @apply bg-transparent text-gray-600;
+    @apply hover:bg-gray-100;
+    @apply focus:ring-gray-400;
+    @apply active:scale-[0.98];
+  }
+  
+  /* Card Base Styles */
+  .card {
+    @apply bg-white rounded-xl;
+    @apply shadow-md;
+    @apply transition-all duration-200 ease-out;
+  }
+  
+  .card-hover {
+    @apply hover:shadow-lg hover:-translate-y-1;
+  }
+  
+  /* Input Base Styles */
+  .input {
+    @apply w-full px-4 py-3;
+    @apply bg-white border border-gray-200 rounded-lg;
+    @apply text-body text-gray-900;
+    @apply transition-all duration-200 ease-out;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary;
+    @apply placeholder:text-gray-400;
+    @apply disabled:bg-gray-50 disabled:cursor-not-allowed;
+  }
+  
+  .input-error {
+    @apply border-error focus:ring-error focus:border-error;
+  }
+  
+  /* Container Styles */
+  .container-narrow {
+    @apply max-w-2xl mx-auto px-4;
+  }
+  
+  .container-standard {
+    @apply max-w-4xl mx-auto px-4;
+  }
+  
+  .container-wide {
+    @apply max-w-7xl mx-auto px-4;
+  }
+  
+  /* Section Styles */
+  .section {
+    @apply py-20 px-4;
+  }
+  
+  .section-sm {
+    @apply py-12 px-4;
+  }
+  
+  .section-lg {
+    @apply py-30 px-4;
+  }
 }
+
+/* Utility Styles */
+@layer utilities {
+  /* Transition Utilities */
+  .transition-micro {
+    transition-duration: 100ms;
+  }
+  
+  .transition-standard {
+    transition-duration: 200ms;
+  }
+  
+  .transition-moderate {
+    transition-duration: 300ms;
+  }
+  
+  .transition-extended {
+    transition-duration: 400ms;
+  }
+  
+  /* Glassmorphism Effect */
+  .glass {
+    @apply bg-white/80 backdrop-blur-lg;
+    @apply border border-white/20;
+  }
+  
+  /* Gradient Text */
+  .gradient-text {
+    @apply bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-primary via-accent to-secondary;
+  }
+  
+  /* Smooth Scrolling */
+  .smooth-scroll {
+    scroll-behavior: smooth;
+  }
+  
+          /* Text Balance */
+          .text-balance {
+            text-wrap: balance;
+          }
+
+          /* Markdown Styles for Chat */
+          .prose code {
+            @apply text-sm;
+          }
+          
+          .prose pre {
+            @apply bg-gray-900 text-gray-100;
+          }
+          
+          .prose pre code {
+            @apply bg-transparent text-gray-100;
+          }
+          
+          .prose a {
+            @apply text-primary hover:text-primary-dark;
+          }
+          
+          .prose strong {
+            @apply font-semibold;
+          }
+          
+          .prose ul,
+          .prose ol {
+            @apply my-3;
+          }
+          
+          .prose li {
+            @apply my-1;
+          }
+          
+          .prose blockquote {
+            @apply border-l-4 border-primary/30 pl-4 py-2 my-3 italic;
+          }
+          
+          .prose table {
+            @apply my-4;
+          }
+          
+          .prose th,
+          .prose td {
+            @apply px-4 py-2;
+          }
+        }
