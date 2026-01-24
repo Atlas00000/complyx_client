@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Message } from './chatStore';
 
 export interface ChatSession {
   id: string;

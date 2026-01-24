@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { AIFeaturesAPI } from '@/lib/api/aiFeaturesApi';
 import { Citations } from '@/components/ai/Citations';
 import MessageBubble from './MessageBubble';
 
@@ -24,9 +23,6 @@ export function EnhancedMessageBubble({
   status,
   showCitations = true,
   showRecommendations = false,
-  assessmentId,
-  answers,
-  ifrsStandard,
 }: EnhancedMessageBubbleProps) {
   const [citations, setCitations] = useState<boolean>(false);
 

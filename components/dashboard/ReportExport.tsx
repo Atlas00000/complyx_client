@@ -56,7 +56,7 @@ export function ReportExport({ className }: ReportExportProps) {
     try {
       const data = generateReportData();
       const pdfGen = new PDFGenerator();
-      const pdfDoc = pdfGen.generateReport(data, exportOptions);
+      pdfGen.generateReport(data, exportOptions);
       const filename = `IFRS-${data.ifrsStandard}-Assessment-${data.assessmentId.substring(0, 8)}-${Date.now()}.pdf`;
       pdfGen.save(filename);
     } catch (error) {
@@ -93,12 +93,12 @@ export function ReportExport({ className }: ReportExportProps) {
   return (
     <div className={className}>
       {showCustomization ? (
-        <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm mb-4">
+        <div className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 p-4 shadow-sm mb-4">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-gray-900">Report Options</h3>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-slate-100">Report Options</h3>
             <button
               onClick={() => setShowCustomization(false)}
-              className="text-gray-500 hover:text-gray-700"
+              className="text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200"
             >
               ✕
             </button>

@@ -1,18 +1,23 @@
 'use client';
 
-import { useEffect } from 'react';
+import { lazy, Suspense, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useAssessmentStore } from '@/stores/assessmentStore';
 import { useAuthStore } from '@/stores/authStore';
-import { Header, Container, Grid } from '@/components/layout';
-import { Card, Button, EmptyState } from '@/components/ui';
+import { usePageLoading } from '@/hooks/usePageLoading';
+import { Header, Container } from '@/components/layout';
+import { Button, EmptyState } from '@/components/ui';
+import LoadingScreen from '@/components/ui/loading/LoadingScreen';
+import LoadingSpinner from '@/components/ui/loading/LoadingSpinner';
 import { AssessmentDashboard } from '@/components/dashboard/AssessmentDashboard';
-import { ReadinessScore } from '@/components/dashboard/ReadinessScore';
-import { ProgressCharts } from '@/components/dashboard/ProgressCharts';
-import { CategoryBreakdown } from '@/components/dashboard/CategoryBreakdown';
-import { ComplianceMatrix } from '@/components/assessment/ComplianceMatrix';
-import { GapAnalysis } from '@/components/dashboard/GapAnalysis';
 import { ReportExport } from '@/components/dashboard/ReportExport';
+
+// Lazy load dashboard components
+const ReadinessScore = lazy(() => import('@/components/dashboard/ReadinessScore').then(m => ({ default: m.ReadinessScore })));
+const ProgressCharts = lazy(() => import('@/components/dashboard/ProgressCharts').then(m => ({ default: m.ProgressCharts })));
+const CategoryBreakdown = lazy(() => import('@/components/dashboard/CategoryBreakdown').then(m => ({ default: m.CategoryBreakdown })));
+const ComplianceMatrix = lazy(() => import('@/components/assessment/ComplianceMatrix').then(m => ({ default: m.ComplianceMatrix })));
+const GapAnalysis = lazy(() => import('@/components/dashboard/GapAnalysis').then(m => ({ default: m.GapAnalysis })));
 
 export default function DashboardPage() {
   const {
@@ -25,9 +30,23 @@ export default function DashboardPage() {
   const userId = user?.id;
 
   const hasData = assessmentId && answers.length > 0;
+  
+  // Memoize computed values to prevent unnecessary recalculations
+  const mappedAnswers = useMemo(() => 
+    answers.map(a => ({ questionId: a.questionId, value: a.value })),
+    [answers]
+  );
+  
+  // Page loading state - show for at least 1 second to ensure visibility
+  const isPageLoading = usePageLoading({ minLoadingTime: 1000 });
+
+  // Show loading screen during initial page load
+  if (isPageLoading) {
+    return <LoadingScreen text="Loading Dashboard..." />;
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
       <Header
         title="Dashboard"
         subtitle="IFRS S1 & S2 Compliance Overview"
@@ -35,9 +54,6 @@ export default function DashboardPage() {
           <div className="flex items-center gap-3">
             <Button variant="ghost" onClick={() => window.location.href = '/'}>
               Chat
-            </Button>
-            <Button variant="primary" onClick={() => window.location.href = '/test-chat'}>
-              Start Assessment
             </Button>
           </div>
         }
@@ -57,121 +73,75 @@ export default function DashboardPage() {
             </motion.div>
 
             {/* Readiness Score */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <Card variant="elevated" className="p-6">
-                <ReadinessScore 
+            <Suspense fallback={<div className="flex items-center justify-center min-h-[300px]"><LoadingSpinner size="medium" /></div>}>
+              <ReadinessScore 
+                scores={scores} 
+                showBreakdown 
+                userId={userId}
+                assessmentId={assessmentId || undefined}
+                autoFetch={!scores}
+              />
+            </Suspense>
+
+            {/* Two Column Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Category Breakdown */}
+              <Suspense fallback={<div className="flex items-center justify-center min-h-[300px]"><LoadingSpinner size="medium" /></div>}>
+                <CategoryBreakdown 
                   scores={scores} 
-                  showBreakdown 
+                  viewMode="bar" 
+                  showComparison 
                   userId={userId}
                   assessmentId={assessmentId || undefined}
                   autoFetch={!scores}
                 />
-              </Card>
-            </motion.div>
-
-            {/* Two Column Layout */}
-            <Grid
-              cols={2}
-              gap="large"
-              responsive={{
-                sm: 1,
-                md: 1,
-                lg: 2,
-              }}
-            >
-              {/* Category Breakdown */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-              >
-                <Card variant="elevated" className="p-6 h-full">
-                  <CategoryBreakdown 
-                    scores={scores} 
-                    viewMode="bar" 
-                    showComparison 
-                    userId={userId}
-                    assessmentId={assessmentId || undefined}
-                    autoFetch={!scores}
-                  />
-                </Card>
-              </motion.div>
+              </Suspense>
 
               {/* Progress Charts */}
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: 0.3 }}
-              >
-                <Card variant="elevated" className="p-6 h-full">
-                  <ProgressCharts 
-                    showAreaChart 
-                    userId={userId}
-                    assessmentId={assessmentId || undefined}
-                    autoFetch={true}
-                  />
-                </Card>
-              </motion.div>
-            </Grid>
+              <Suspense fallback={<div className="flex items-center justify-center min-h-[300px]"><LoadingSpinner size="medium" /></div>}>
+                <ProgressCharts 
+                  showAreaChart 
+                  userId={userId}
+                  assessmentId={assessmentId || undefined}
+                  autoFetch={true}
+                />
+              </Suspense>
+            </div>
 
             {/* Compliance Matrix */}
             {(hasData || userId) && ifrsStandard && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.4 }}
-              >
-                <Card variant="elevated" className="p-6">
-                  <ComplianceMatrix
-                    ifrsStandard={ifrsStandard}
-                    answers={answers.map(a => ({ questionId: a.questionId, value: a.value }))}
-                    userId={userId}
-                    assessmentId={assessmentId || undefined}
-                    useDashboardApi={!hasData && !!userId}
-                  />
-                </Card>
-              </motion.div>
+              <Suspense fallback={<div className="flex items-center justify-center min-h-[300px]"><LoadingSpinner size="medium" /></div>}>
+                <ComplianceMatrix
+                  ifrsStandard={ifrsStandard}
+                  answers={mappedAnswers}
+                  userId={userId}
+                  assessmentId={assessmentId || undefined}
+                  useDashboardApi={!hasData && !!userId}
+                />
+              </Suspense>
             )}
 
             {/* Gap Analysis */}
             {hasData && ifrsStandard && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.5 }}
-              >
-                <Card variant="elevated" className="p-6">
-                  <GapAnalysis
-                    ifrsStandard={ifrsStandard}
-                    assessmentId={assessmentId || undefined}
-                    autoFetch={true}
-                  />
-                </Card>
-              </motion.div>
+              <Suspense fallback={<div className="flex items-center justify-center min-h-[300px]"><LoadingSpinner size="medium" /></div>}>
+                <GapAnalysis
+                  ifrsStandard={ifrsStandard}
+                  assessmentId={assessmentId || undefined}
+                  autoFetch={true}
+                />
+              </Suspense>
             )}
 
             {/* Empty State */}
             {!hasData && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5 }}
-              >
-                <Card variant="elevated" className="p-12">
-                  <EmptyState
-                    title="No Assessment Data"
-                    description="Start an assessment to view your dashboard and compliance status. Get insights into your IFRS S1 & S2 readiness."
-                    action={{
-                      label: 'Start Assessment',
-                      onClick: () => window.location.href = '/test-chat',
-                    }}
-                  />
-                </Card>
-              </motion.div>
+              <EmptyState
+                title="No Assessment Data"
+                description="Start an assessment to view your dashboard and compliance status. Get insights into your IFRS S1 & S2 readiness."
+                action={{
+                  label: 'Start Assessment',
+                  onClick: () => window.location.href = '/test-chat',
+                }}
+              />
             )}
           </div>
         </AssessmentDashboard>

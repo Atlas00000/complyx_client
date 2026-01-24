@@ -1,9 +1,19 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import Script from 'next/script'
 import './globals.css'
 import ErrorBoundary from '@/components/ui/ErrorBoundary'
+import ThemeProvider from '@/components/providers/ThemeProvider'
+import QueryProvider from '@/components/providers/QueryProvider'
+import { themeScript } from './theme-script'
 
-const inter = Inter({ subsets: ['latin'] })
+// Optimize font loading with display swap and preload
+const inter = Inter({ 
+  subsets: ['latin'],
+  display: 'swap', // Show fallback font while loading
+  preload: true,
+  variable: '--font-inter',
+})
 
 export const metadata: Metadata = {
   title: 'Complyx - IFRS S1 & S2 Readiness Assessment',
@@ -17,9 +27,20 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="smooth-scroll">
+      <head>
+        <Script
+          id="theme-script"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: themeScript }}
+        />
+      </head>
       <body className={inter.className}>
         <ErrorBoundary>
-          {children}
+          <QueryProvider>
+            <ThemeProvider>
+              {children}
+            </ThemeProvider>
+          </QueryProvider>
         </ErrorBoundary>
       </body>
     </html>

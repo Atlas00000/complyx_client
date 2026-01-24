@@ -85,7 +85,7 @@ const Dropdown = ({
           >
             {items.map((item, index) => (
               <div key={index}>
-                {item.divider && <div className="border-t border-gray-200 my-1" />}
+                {item.divider && <div className="border-t border-gray-200 dark:border-slate-600 my-1" />}
                 <button
                   onClick={() => {
                     if (!item.disabled) {
@@ -97,7 +97,7 @@ const Dropdown = ({
                   className={`w-full flex items-center gap-3 px-4 py-2 text-sm transition-colors duration-200 ${
                     item.danger
                       ? 'text-error hover:bg-error/10'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      : 'text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700'
                   } ${
                     item.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                   }`}

@@ -25,17 +25,19 @@ const FAQSection = ({
   const accordionItems = items.map((item) => ({
     id: item.id,
     title: item.question,
-    content: <p className="text-body text-gray-600">{item.answer}</p>,
+    content: <p className="text-body text-gray-600 dark:text-slate-300">{item.answer}</p>,
   }));
 
   return (
-    <section className={`py-20 bg-white ${className}`}>
+    <section className={`py-20 bg-white dark:bg-slate-900 ${className}`}>
       <Container size="standard">
         {/* Header */}
         <div className="text-center mb-16">
-          <h2 className="text-h2 text-gray-900 font-bold mb-4">{title}</h2>
+          <h2 className="text-h2 text-gray-900 dark:text-slate-100 font-bold mb-4">
+            {title}
+          </h2>
           {subtitle && (
-            <p className="text-body-lg text-gray-600 max-w-2xl mx-auto">
+            <p className="text-body-lg text-gray-600 dark:text-slate-300 max-w-2xl mx-auto">
               {subtitle}
             </p>
           )}

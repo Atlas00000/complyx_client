@@ -3,7 +3,7 @@
 import { HTMLAttributes, ReactNode } from 'react';
 import { motion } from 'framer-motion';
 
-export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
+export interface BadgeProps extends Omit<HTMLAttributes<HTMLSpanElement>, 'onDrag' | 'onDragEnd' | 'onDragEnter' | 'onDragExit' | 'onDragLeave' | 'onDragStart' | 'onAnimationStart' | 'onAnimationEnd' | 'onAnimationIteration'> {
   children: ReactNode;
   variant?: 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'accent';
   size?: 'small' | 'medium' | 'large';

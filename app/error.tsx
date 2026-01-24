@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Container } from '@/components/layout';
-import { Button, ErrorState } from '@/components/ui';
+import { ErrorState } from '@/components/ui';
 
 export default function Error({
   error,

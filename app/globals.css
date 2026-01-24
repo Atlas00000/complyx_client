@@ -2,49 +2,59 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom Properties (CSS Variables) */
+/* Custom Properties (CSS Variables) - Light Mode (Forest Green & Slate) */
 :root {
-  /* Colors */
-  --color-primary: #2563EB;
-  --color-primary-light: #3B82F6;
-  --color-primary-dark: #1E40AF;
-  --color-secondary: #10B981;
-  --color-secondary-light: #34D399;
-  --color-secondary-dark: #059669;
-  --color-accent: #8B5CF6;
-  --color-accent-light: #A78BFA;
-  --color-accent-dark: #7C3AED;
-  --color-warning: #F59E0B;
-  --color-error: #EF4444;
+  /* Primary Colors - Forest Green */
+  --color-primary: #065F46;
+  --color-primary-light: #10B981;
+  --color-primary-dark: #047857;
+  --color-primary-muted: #6B9B7A;
   
-  /* Neutral Colors */
-  --color-gray-50: #F9FAFB;
-  --color-gray-100: #F3F4F6;
-  --color-gray-200: #E5E7EB;
-  --color-gray-300: #D1D5DB;
-  --color-gray-400: #9CA3AF;
-  --color-gray-500: #6B7280;
-  --color-gray-600: #4B5563;
-  --color-gray-700: #374151;
-  --color-gray-800: #1F2937;
-  --color-gray-900: #111827;
+  /* Secondary Colors - Sage Green */
+  --color-secondary: #6B9B7A;
+  --color-secondary-light: #6EE7B7;
+  --color-secondary-dark: #047857;
+  --color-secondary-muted: #A7F3D0;
+  
+  /* Accent Colors - Teal */
+  --color-accent: #14B8A6;
+  --color-accent-light: #5EEAD4;
+  --color-accent-dark: #0D9488;
+  --color-accent-muted: #2DD4BF;
+  
+  /* Status Colors */
+  --color-warning: #F97316;
+  --color-error: #EF4444;
+  --color-success: #10B981;
+  
+  /* Neutral Colors - Slate */
+  --color-gray-50: #FEFEFE;
+  --color-gray-100: #F8F9FA;
+  --color-gray-200: #E9ECEF;
+  --color-gray-300: #DEE2E6;
+  --color-gray-400: #CED4DA;
+  --color-gray-500: #ADB5BD;
+  --color-gray-600: #6C757D;
+  --color-gray-700: #495057;
+  --color-gray-800: #343A40;
+  --color-gray-900: #1F2937;
   
   /* Text Colors */
-  --color-text-primary: #111827;
-  --color-text-secondary: #4B5563;
-  --color-text-tertiary: #6B7280;
-  --color-text-disabled: #9CA3AF;
+  --color-text-primary: #1F2937;
+  --color-text-secondary: #495057;
+  --color-text-tertiary: #6C757D;
+  --color-text-disabled: #ADB5BD;
   --color-text-inverse: #FFFFFF;
   
   /* Background Colors */
-  --color-bg-primary: #FFFFFF;
-  --color-bg-secondary: #F9FAFB;
+  --color-bg-primary: #FEFEFE;
+  --color-bg-secondary: #F8F9FA;
   --color-bg-tertiary: #F3F4F6;
   --color-bg-elevated: #FFFFFF;
   
   /* Border Colors */
-  --color-border-default: #E5E7EB;
-  --color-border-focus: #2563EB;
+  --color-border-default: #E9ECEF;
+  --color-border-focus: #065F46;
   --color-border-error: #EF4444;
   --color-border-success: #10B981;
   
@@ -56,11 +66,11 @@
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   
-  /* Colored Shadows */
-  --shadow-primary: 0 4px 14px 0 rgba(37, 99, 235, 0.15);
-  --shadow-primary-lg: 0 8px 20px 0 rgba(37, 99, 235, 0.2);
+  /* Colored Shadows - Forest Green */
+  --shadow-primary: 0 4px 14px 0 rgba(6, 95, 70, 0.15);
+  --shadow-primary-lg: 0 8px 20px 0 rgba(6, 95, 70, 0.2);
   --shadow-secondary: 0 4px 14px 0 rgba(16, 185, 129, 0.15);
-  --shadow-accent: 0 4px 14px 0 rgba(139, 92, 246, 0.15);
+  --shadow-accent: 0 4px 14px 0 rgba(20, 184, 166, 0.15);
   
   /* Spacing */
   --spacing-base: 4px;
@@ -96,10 +106,88 @@
   --z-tooltip: 1070;
 }
 
+/* Dark Mode (Balanced Dark Slate) */
+.dark {
+  /* Primary Colors - Emerald (brighter for dark mode) */
+  --color-primary: #10B981;
+  --color-primary-light: #34D399;
+  --color-primary-dark: #059669;
+  --color-primary-muted: #6EE7B7;
+  
+  /* Secondary Colors - Sage */
+  --color-secondary: #6EE7B7;
+  --color-secondary-light: #A7F3D0;
+  --color-secondary-dark: #34D399;
+  --color-secondary-muted: #D1FAE5;
+  
+  /* Accent Colors - Teal */
+  --color-accent: #14B8A6;
+  --color-accent-light: #5EEAD4;
+  --color-accent-dark: #0D9488;
+  --color-accent-muted: #2DD4BF;
+  
+  /* Status Colors */
+  --color-warning: #FB923C;
+  --color-error: #F87171;
+  --color-success: #34D399;
+  
+  /* Neutral Colors - Dark Slate */
+  --color-gray-50: #0F172A;
+  --color-gray-100: #1E293B;
+  --color-gray-200: #334155;
+  --color-gray-300: #475569;
+  --color-gray-400: #64748B;
+  --color-gray-500: #94A3B8;
+  --color-gray-600: #CBD5E1;
+  --color-gray-700: #E2E8F0;
+  --color-gray-800: #F1F5F9;
+  --color-gray-900: #F8FAFC;
+  
+  /* Text Colors */
+  --color-text-primary: #F1F5F9;
+  --color-text-secondary: #CBD5E1;
+  --color-text-tertiary: #94A3B8;
+  --color-text-disabled: #64748B;
+  --color-text-inverse: #0F172A;
+  
+  /* Background Colors */
+  --color-bg-primary: #0F172A;
+  --color-bg-secondary: #1E293B;
+  --color-bg-tertiary: #334155;
+  --color-bg-elevated: #1E293B;
+  
+  /* Border Colors */
+  --color-border-default: #475569;
+  --color-border-focus: #10B981;
+  --color-border-error: #F87171;
+  --color-border-success: #34D399;
+  
+  /* Shadows - Adjusted for dark mode */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  
+  /* Colored Shadows - Emerald (for dark mode) */
+  --shadow-primary: 0 4px 14px 0 rgba(16, 185, 129, 0.2);
+  --shadow-primary-lg: 0 8px 20px 0 rgba(16, 185, 129, 0.25);
+  --shadow-secondary: 0 4px 14px 0 rgba(110, 231, 183, 0.2);
+  --shadow-accent: 0 4px 14px 0 rgba(20, 184, 166, 0.2);
+}
+
+/* Theme Transition */
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+}
+
 /* Base Styles */
 @layer base {
   * {
-    @apply border-gray-200;
+    @apply border-gray-200 dark:border-gray-600;
   }
   
   html {
@@ -109,7 +197,7 @@
   }
   
   body {
-    @apply bg-gray-50 text-gray-900;
+    @apply bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100;
     @apply font-sans;
     @apply text-body;
     @apply leading-normal;
@@ -118,7 +206,7 @@
   
   /* Typography */
   h1, h2, h3, h4, h5, h6 {
-    @apply font-semibold text-gray-900;
+    @apply font-semibold text-gray-900 dark:text-dark-text-primary;
     @apply leading-tight;
   }
   
@@ -173,12 +261,72 @@
   }
   
   ::-webkit-scrollbar-track {
-    @apply bg-gray-100;
+    @apply bg-gray-100 dark:bg-slate-800;
   }
   
   ::-webkit-scrollbar-thumb {
-    @apply bg-gray-300 rounded-full;
-    @apply hover:bg-gray-400;
+    @apply bg-gray-300 dark:bg-slate-600 rounded-full;
+    @apply hover:bg-gray-400 dark:hover:bg-slate-500;
+    transition: background-color 0.2s ease;
+  }
+  
+  /* Custom Scrollbar for Chat Interface */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 10px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(
+      180deg,
+      rgba(6, 95, 70, 0.3) 0%,
+      rgba(20, 184, 166, 0.3) 100%
+    );
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    transition: all 0.3s ease;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(
+      180deg,
+      rgba(6, 95, 70, 0.5) 0%,
+      rgba(20, 184, 166, 0.5) 100%
+    );
+    background-clip: padding-box;
+  }
+  
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(
+      180deg,
+      rgba(16, 185, 129, 0.4) 0%,
+      rgba(20, 184, 166, 0.4) 100%
+    );
+    background-clip: padding-box;
+  }
+  
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(
+      180deg,
+      rgba(16, 185, 129, 0.6) 0%,
+      rgba(20, 184, 166, 0.6) 100%
+    );
+    background-clip: padding-box;
+  }
+  
+  /* Firefox scrollbar */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(6, 95, 70, 0.3) transparent;
+  }
+  
+  .dark .custom-scrollbar {
+    scrollbar-color: rgba(16, 185, 129, 0.4) transparent;
   }
   
   /* Reduced Motion */
@@ -305,11 +453,12 @@
     @apply border border-white/20;
   }
   
-  /* Gradient Text */
-  .gradient-text {
-    @apply bg-clip-text text-transparent;
-    @apply bg-gradient-to-r from-primary via-accent to-secondary;
-  }
+          /* Gradient Text - Forest Green Gradient */
+          .gradient-text {
+            @apply bg-clip-text text-transparent;
+            @apply bg-gradient-to-r from-primary via-accent to-secondary;
+            @apply dark:from-primary dark:via-accent dark:to-secondary;
+          }
   
   /* Smooth Scrolling */
   .smooth-scroll {

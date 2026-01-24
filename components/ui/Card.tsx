@@ -3,7 +3,7 @@
 import { HTMLAttributes, ReactNode } from 'react';
 import { motion } from 'framer-motion';
 
-export interface CardProps extends HTMLAttributes<HTMLDivElement> {
+export interface CardProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onDrag' | 'onDragEnd' | 'onDragEnter' | 'onDragExit' | 'onDragLeave' | 'onDragStart' | 'onAnimationStart' | 'onAnimationEnd' | 'onAnimationIteration'> {
   variant?: 'standard' | 'elevated' | 'interactive';
   children: ReactNode;
   hover?: boolean;
@@ -31,7 +31,7 @@ const Card = ({
   ...props
 }: CardProps) => {
   // Base styles
-  const baseStyles = 'bg-white rounded-xl transition-all duration-200 ease-out';
+  const baseStyles = 'bg-white dark:bg-slate-800 rounded-xl transition-all duration-200 ease-out';
   
   // Variant styles
   const variantStyles = {
@@ -47,12 +47,6 @@ const Card = ({
   const clickableStyles = onClick ? 'active:scale-[0.98]' : '';
   
   const cardClasses = `${baseStyles} ${variantStyles[variant]} ${hoverStyles} ${clickableStyles} ${className}`;
-  
-  const cardContent = (
-    <div className={cardClasses} {...props}>
-      {children}
-    </div>
-  );
   
   if (onClick) {
     return (

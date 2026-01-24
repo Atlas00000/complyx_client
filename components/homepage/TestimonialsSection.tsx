@@ -27,13 +27,15 @@ const TestimonialsSection = ({
   className = '',
 }: TestimonialsSectionProps) => {
   return (
-    <section className={`py-20 bg-gray-50 ${className}`}>
+    <section className={`py-20 bg-gray-50 dark:bg-slate-800 ${className}`}>
       <Container size="wide">
         {/* Header */}
         <div className="text-center mb-16">
-          <h2 className="text-h2 text-gray-900 font-bold mb-4">{title}</h2>
+          <h2 className="text-h2 text-gray-900 dark:text-slate-100 font-bold mb-4">
+            {title}
+          </h2>
           {subtitle && (
-            <p className="text-body-lg text-gray-600 max-w-2xl mx-auto">
+            <p className="text-body-lg text-gray-600 dark:text-slate-300 max-w-2xl mx-auto">
               {subtitle}
             </p>
           )}
@@ -49,7 +51,7 @@ const TestimonialsSection = ({
               viewport={{ once: true, margin: '-50px' }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
             >
-              <Card variant="elevated" hover className="h-full p-6">
+              <Card variant="elevated" hover className="h-full p-6 border border-gray-200 dark:border-gray-600">
                 {/* Rating */}
                 {testimonial.rating && (
                   <div className="flex items-center gap-1 mb-4">
@@ -58,8 +60,8 @@ const TestimonialsSection = ({
                         key={i}
                         className={`w-5 h-5 ${
                           i < testimonial.rating!
-                            ? 'text-warning'
-                            : 'text-gray-300'
+                            ? 'text-warning dark:text-warning'
+                            : 'text-gray-300 dark:text-gray-600'
                         }`}
                         fill="currentColor"
                         viewBox="0 0 20 20"
@@ -71,7 +73,7 @@ const TestimonialsSection = ({
                 )}
 
                 {/* Content */}
-                <p className="text-body text-gray-700 mb-6 leading-relaxed">
+                <p className="text-body text-gray-700 dark:text-slate-300 mb-6 leading-relaxed">
                   "{testimonial.content}"
                 </p>
 
@@ -81,16 +83,18 @@ const TestimonialsSection = ({
                     <img
                       src={testimonial.avatar}
                       alt={testimonial.name}
-                      className="w-12 h-12 rounded-full"
+                      className="w-12 h-12 rounded-full border-2 border-primary/20 dark:border-primary/30"
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center font-semibold">
+                    <div className="w-12 h-12 rounded-full bg-primary dark:bg-primary text-white flex items-center justify-center font-semibold shadow-primary">
                       {testimonial.name[0]}
                     </div>
                   )}
                   <div>
-                    <p className="font-semibold text-gray-900">{testimonial.name}</p>
-                    <p className="text-sm text-gray-600">
+                    <p className="font-semibold text-gray-900 dark:text-slate-100">
+                      {testimonial.name}
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-slate-400">
                       {testimonial.role} at {testimonial.company}
                     </p>
                   </div>

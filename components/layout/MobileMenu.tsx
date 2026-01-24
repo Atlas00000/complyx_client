@@ -1,7 +1,5 @@
 'use client';
 
-import { ReactNode } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Drawer } from '@/components/ui';
 import Navigation, { NavItem } from './Navigation';
 

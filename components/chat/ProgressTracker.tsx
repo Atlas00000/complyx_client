@@ -37,12 +37,6 @@ export default function ProgressTracker({
   categoryProgress = [],
 }: ProgressTrackerProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [previousProgress, setPreviousProgress] = useState(progress);
-
-  // Track progress changes for animations
-  useEffect(() => {
-    setPreviousProgress(progress);
-  }, [progress]);
 
   const formatTime = (minutes?: number): string => {
     if (!minutes) return '';
@@ -188,12 +182,8 @@ export default function ProgressTracker({
  */
 export function useProgressTracker(
   answeredCount: number,
-  totalCount: number,
-  options: {
-    updateInterval?: number; // milliseconds
-  } = {}
+  totalCount: number
 ) {
-  const { updateInterval = 1000 } = options;
   
   const [progress, setProgress] = useState(0);
   const [previousCount, setPreviousCount] = useState(0);

@@ -125,19 +125,19 @@ const Drawer = ({
             exit="exit"
             variants={getAnimationVariants()}
             transition={{ duration: 0.3, ease: 'easeOut' }}
-            className={`fixed ${positionStyles[position]} ${sizeStyles[size]} bg-white shadow-2xl z-modal flex flex-col`}
+            className={`fixed ${positionStyles[position]} ${sizeStyles[size]} bg-white dark:bg-slate-800 shadow-2xl z-modal flex flex-col`}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
             {(title || showCloseButton) && (
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-600 flex-shrink-0">
                 {title && (
-                  <h2 className="text-h4 text-gray-900 font-semibold">{title}</h2>
+                  <h2 className="text-h4 text-gray-900 dark:text-slate-100 font-semibold">{title}</h2>
                 )}
                 {showCloseButton && (
                   <button
                     onClick={onClose}
-                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                    className="p-2 text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors duration-200"
                     aria-label="Close drawer"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -3,7 +3,7 @@
 import { HTMLAttributes, ReactNode } from 'react';
 import { motion } from 'framer-motion';
 
-export interface ContainerProps extends HTMLAttributes<HTMLDivElement> {
+export interface ContainerProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onDrag' | 'onDragEnd' | 'onDragEnter' | 'onDragExit' | 'onDragLeave' | 'onDragStart' | 'onAnimationStart' | 'onAnimationEnd' | 'onAnimationIteration'> {
   children: ReactNode;
   size?: 'narrow' | 'standard' | 'wide' | 'full';
   className?: string;

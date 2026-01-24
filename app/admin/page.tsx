@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAdminStore } from '@/stores/adminStore';
 import { Header, Container, Grid } from '@/components/layout';
-import { Card, Button, Skeleton, SkeletonCard } from '@/components/ui';
+import { Card, Button, SkeletonCard } from '@/components/ui';
 import { StatisticsSection } from '@/components/homepage';
 
 export default function AdminDashboard() {

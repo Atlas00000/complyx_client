@@ -3,7 +3,7 @@
 import { InputHTMLAttributes, forwardRef } from 'react';
 import { motion } from 'framer-motion';
 
-export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'onDrag' | 'onDragEnd' | 'onDragEnter' | 'onDragExit' | 'onDragLeave' | 'onDragStart' | 'onAnimationStart' | 'onAnimationEnd' | 'onAnimationIteration'> {
   error?: string;
   label?: string;
   helperText?: string;

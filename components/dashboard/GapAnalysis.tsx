@@ -1,7 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { DashboardAPI, GapAnalysis as GapAnalysisType } from '@/lib/api/dashboardApi';
+import { parseError, ErrorInfo } from '@/lib/utils/errorHandler';
+import Skeleton, { SkeletonText } from '@/components/ui/Loading';
+import { Button } from '@/components/ui';
+import GapAnalysisContainer from './GapAnalysisContainer';
+import GapAnalysisHeader from './GapAnalysisHeader';
+import GapSeveritySummary from './GapSeveritySummary';
+import GapActionItems from './GapActionItems';
+import GapAnalysisGrid from './GapAnalysisGrid';
+import GapAnalysisEmptyState from './GapAnalysisEmptyState';
 
 interface GapAnalysisProps {
   gapAnalysis?: GapAnalysisType | null;
@@ -23,80 +32,180 @@ export function GapAnalysis({
   const [gapAnalysis, setGapAnalysis] = useState<GapAnalysisType | null>(propGapAnalysis || null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorInfo, setErrorInfo] = useState<ErrorInfo | null>(null);
+  
+  // Request cancellation and duplicate guard
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const isRequestInFlightRef = useRef(false);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [retryTrigger, setRetryTrigger] = useState(0);
 
   useEffect(() => {
-    if (autoFetch && !propGapAnalysis && (userId || assessmentId)) {
-      setLoading(true);
-      setError(null);
-      DashboardAPI.getGapAnalysis({ userId, assessmentId, ifrsStandard })
-        .then((data) => {
-          setGapAnalysis(data);
-        })
-        .catch((err) => {
-          console.error('Failed to fetch gap analysis:', err);
-          setError(err instanceof Error ? err.message : 'Failed to load gap analysis');
-        })
-        .finally(() => {
-          setLoading(false);
-        });
-    } else if (propGapAnalysis) {
+    // Update state if prop changes
+    if (propGapAnalysis) {
       setGapAnalysis(propGapAnalysis);
+      return;
     }
-  }, [autoFetch, propGapAnalysis, userId, assessmentId, ifrsStandard]);
+
+    // Skip if conditions not met
+    if (!autoFetch || !(userId || assessmentId)) {
+      return;
+    }
+
+    // Prevent duplicate requests
+    if (isRequestInFlightRef.current) {
+      return;
+    }
+
+    // Cancel any previous request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new AbortController for this request
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+    isRequestInFlightRef.current = true;
+
+    setLoading(true);
+    setError(null);
+
+    DashboardAPI.getGapAnalysis({ userId, assessmentId, ifrsStandard })
+      .then((data) => {
+        // Check if request was cancelled
+        if (abortController.signal.aborted) {
+          return;
+        }
+
+        setGapAnalysis(data);
+      })
+      .catch((err) => {
+        // Don't set error if request was cancelled
+        if (abortController.signal.aborted) {
+          return;
+        }
+        
+        // Parse error to get detailed information
+        const parsedError = parseError(err);
+        console.error('Failed to fetch gap analysis:', err);
+        
+        setError(parsedError.userMessage);
+        setErrorInfo(parsedError);
+        
+        // For rate limiting, don't retry automatically - user should wait
+        // For auth errors, don't retry - user needs to log in
+        if (parsedError.type === 'auth' || parsedError.type === 'rateLimit') {
+          // Clear any existing retry timeout
+          if (retryTimeoutRef.current) {
+            clearTimeout(retryTimeoutRef.current);
+            retryTimeoutRef.current = null;
+          }
+        }
+      })
+      .finally(() => {
+        // Only update loading state if request wasn't cancelled
+        if (!abortController.signal.aborted) {
+          setLoading(false);
+          isRequestInFlightRef.current = false;
+        }
+      });
+
+    // Cleanup: cancel request on unmount or dependency change
+    return () => {
+      abortController.abort();
+      isRequestInFlightRef.current = false;
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
+    };
+  }, [autoFetch, propGapAnalysis, userId, assessmentId, ifrsStandard, retryTrigger]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-gray-500">Loading gap analysis...</div>
-      </div>
+      <GapAnalysisContainer>
+        <div className="flex items-center justify-center h-64">
+          <div className="space-y-4">
+            <Skeleton width={300} height={200} rounded="lg" />
+            <SkeletonText lines={2} />
+          </div>
+        </div>
+      </GapAnalysisContainer>
     );
   }
 
-  if (error) {
+  if (error && errorInfo) {
+    const handleRetry = () => {
+      setError(null);
+      setErrorInfo(null);
+      isRequestInFlightRef.current = false;
+      setRetryTrigger(prev => prev + 1);
+    };
+
     return (
-      <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-        <div className="text-red-800">Error: {error}</div>
-      </div>
+      <GapAnalysisContainer>
+        <div className="flex flex-col items-center justify-center text-center py-8 px-4 h-full">
+          <div className="mb-4">
+            {errorInfo.type === 'auth' && (
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center">
+                <svg className="w-8 h-8 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+            )}
+            {errorInfo.type === 'rateLimit' && (
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
+                <svg className="w-8 h-8 text-orange-600 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            )}
+            {(errorInfo.type === 'network' || errorInfo.type === 'server' || errorInfo.type === 'unknown') && (
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
+                <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            )}
+          </div>
+          
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-2">
+            {errorInfo.type === 'auth' && 'Authentication Required'}
+            {errorInfo.type === 'rateLimit' && 'Too Many Requests'}
+            {errorInfo.type === 'network' && 'Connection Error'}
+            {errorInfo.type === 'server' && 'Server Error'}
+            {errorInfo.type === 'unknown' && 'Error Loading Gap Analysis'}
+          </h3>
+          
+          <p className="text-sm text-gray-600 dark:text-slate-400 mb-6 max-w-md">
+            {error}
+          </p>
+
+          {errorInfo.canRetry && (
+            <Button variant="primary" onClick={handleRetry} className="mt-2">
+              Try Again
+            </Button>
+          )}
+
+          {errorInfo.type === 'auth' && (
+            <Button variant="primary" onClick={() => window.location.href = '/auth/login'} className="mt-2">
+              Go to Login
+            </Button>
+          )}
+        </div>
+      </GapAnalysisContainer>
     );
   }
 
   if (!gapAnalysis) {
     return (
-      <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-        <div className="text-gray-600">No gap analysis data available</div>
-      </div>
+      <GapAnalysisContainer>
+        <div className="flex items-center justify-center h-64 text-gray-500 dark:text-slate-400">
+          <p className="text-lg">No gap analysis data available</p>
+        </div>
+      </GapAnalysisContainer>
     );
   }
-
-  const getSeverityColor = (severity: 'critical' | 'high' | 'medium' | 'low') => {
-    switch (severity) {
-      case 'critical':
-        return 'bg-red-100 border-red-500 text-red-800';
-      case 'high':
-        return 'bg-orange-100 border-orange-500 text-orange-800';
-      case 'medium':
-        return 'bg-yellow-100 border-yellow-500 text-yellow-800';
-      case 'low':
-        return 'bg-blue-100 border-blue-500 text-blue-800';
-      default:
-        return 'bg-gray-100 border-gray-500 text-gray-800';
-    }
-  };
-
-  const getSeverityBadgeColor = (severity: 'critical' | 'high' | 'medium' | 'low') => {
-    switch (severity) {
-      case 'critical':
-        return 'bg-red-200 text-red-800';
-      case 'high':
-        return 'bg-orange-200 text-orange-800';
-      case 'medium':
-        return 'bg-yellow-200 text-yellow-800';
-      case 'low':
-        return 'bg-blue-200 text-blue-800';
-      default:
-        return 'bg-gray-200 text-gray-800';
-    }
-  };
 
   const allGaps = [
     ...gapAnalysis.criticalGaps,
@@ -106,205 +215,50 @@ export function GapAnalysis({
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Overall Gap Summary */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Gap Analysis - IFRS {gapAnalysis.ifrsStandard}</h3>
-        <div className="flex items-center gap-4">
-          <div className="flex-1">
-            <div className="flex justify-between text-sm text-gray-600 mb-2">
-              <span>Overall Gap</span>
-              <span className="font-semibold">{gapAnalysis.overallGap.toFixed(1)}%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-3">
-              <div
-                className={`h-3 rounded-full ${
-                  gapAnalysis.overallGap >= 50
-                    ? 'bg-red-500'
-                    : gapAnalysis.overallGap >= 30
-                    ? 'bg-orange-500'
-                    : gapAnalysis.overallGap >= 10
-                    ? 'bg-yellow-500'
-                    : 'bg-blue-500'
-                }`}
-                style={{ width: `${gapAnalysis.overallGap}%` }}
-              />
-            </div>
-            <div className="mt-2 text-xs text-gray-500">
-              {gapAnalysis.overallGap >= 50
-                ? 'Critical gaps detected - Immediate action required'
-                : gapAnalysis.overallGap >= 30
-                ? 'Significant gaps identified - Priority action needed'
-                : gapAnalysis.overallGap >= 10
-                ? 'Moderate gaps found - Improvement recommended'
-                : 'Minor gaps - On track for compliance'}
-            </div>
-          </div>
-        </div>
+    <GapAnalysisContainer>
+      <div className="space-y-8">
+        {/* Header with Overall Gap */}
+        <GapAnalysisHeader 
+          ifrsStandard={gapAnalysis.ifrsStandard}
+          overallGap={gapAnalysis.overallGap}
+        />
+
+        {/* Severity Summary */}
+        <GapSeveritySummary
+          critical={gapAnalysis.criticalGaps.length}
+          high={gapAnalysis.highGaps.length}
+          medium={gapAnalysis.mediumGaps.length}
+          low={gapAnalysis.lowGaps.length}
+        />
+
+        {/* Priority Actions */}
+        {gapAnalysis.priorityActions && gapAnalysis.priorityActions.length > 0 && (
+          <GapActionItems actions={gapAnalysis.priorityActions} />
+        )}
+
+        {/* Critical Gaps */}
+        {gapAnalysis.criticalGaps.length > 0 && (
+          <GapAnalysisGrid
+            gaps={gapAnalysis.criticalGaps}
+            onGapClick={onGapClick}
+            title="Critical Gaps"
+          />
+        )}
+
+        {/* High Priority Gaps (if no critical gaps) */}
+        {gapAnalysis.highGaps.length > 0 && gapAnalysis.criticalGaps.length === 0 && (
+          <GapAnalysisGrid
+            gaps={gapAnalysis.highGaps.slice(0, 5)}
+            onGapClick={onGapClick}
+            title="High Priority Gaps"
+          />
+        )}
+
+        {/* Empty State */}
+        {allGaps.length === 0 && (
+          <GapAnalysisEmptyState ifrsStandard={gapAnalysis.ifrsStandard} />
+        )}
       </div>
-
-      {/* Gap Summary by Severity */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg border border-red-200 p-4">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="text-sm font-semibold text-red-800">Critical</h4>
-            <span className={`text-xs px-2 py-1 rounded ${getSeverityBadgeColor('critical')}`}>
-              {gapAnalysis.criticalGaps.length}
-            </span>
-          </div>
-          <div className="text-2xl font-bold text-red-900">{gapAnalysis.criticalGaps.length}</div>
-          <div className="text-xs text-red-600 mt-1">gaps</div>
-        </div>
-        <div className="bg-white rounded-lg border border-orange-200 p-4">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="text-sm font-semibold text-orange-800">High</h4>
-            <span className={`text-xs px-2 py-1 rounded ${getSeverityBadgeColor('high')}`}>
-              {gapAnalysis.highGaps.length}
-            </span>
-          </div>
-          <div className="text-2xl font-bold text-orange-900">{gapAnalysis.highGaps.length}</div>
-          <div className="text-xs text-orange-600 mt-1">gaps</div>
-        </div>
-        <div className="bg-white rounded-lg border border-yellow-200 p-4">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="text-sm font-semibold text-yellow-800">Medium</h4>
-            <span className={`text-xs px-2 py-1 rounded ${getSeverityBadgeColor('medium')}`}>
-              {gapAnalysis.mediumGaps.length}
-            </span>
-          </div>
-          <div className="text-2xl font-bold text-yellow-900">{gapAnalysis.mediumGaps.length}</div>
-          <div className="text-xs text-yellow-600 mt-1">gaps</div>
-        </div>
-        <div className="bg-white rounded-lg border border-blue-200 p-4">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="text-sm font-semibold text-blue-800">Low</h4>
-            <span className={`text-xs px-2 py-1 rounded ${getSeverityBadgeColor('low')}`}>
-              {gapAnalysis.lowGaps.length}
-            </span>
-          </div>
-          <div className="text-2xl font-bold text-blue-900">{gapAnalysis.lowGaps.length}</div>
-          <div className="text-xs text-blue-600 mt-1">gaps</div>
-        </div>
-      </div>
-
-      {/* Priority Actions */}
-      {gapAnalysis.priorityActions && gapAnalysis.priorityActions.length > 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h4 className="text-sm font-semibold text-gray-700 mb-4">Priority Actions</h4>
-          <ul className="space-y-2">
-            {gapAnalysis.priorityActions.map((action, index) => (
-              <li key={index} className="flex items-start gap-2 text-sm text-gray-700">
-                <span className="text-primary mt-1">•</span>
-                <span>{action}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Critical Gaps List */}
-      {gapAnalysis.criticalGaps.length > 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h4 className="text-sm font-semibold text-gray-700 mb-4">Critical Gaps</h4>
-          <div className="space-y-3">
-            {gapAnalysis.criticalGaps.map((gap) => (
-              <div
-                key={gap.requirementId}
-                className={`p-4 border-2 rounded-lg ${
-                  onGapClick ? 'cursor-pointer hover:bg-gray-50' : ''
-                } ${getSeverityColor(gap.severity)}`}
-                onClick={() => onGapClick?.(gap)}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-semibold">{gap.code}</span>
-                      {gap.mandatory && (
-                        <span className="text-xs bg-red-200 text-red-800 px-2 py-0.5 rounded">
-                          Mandatory
-                        </span>
-                      )}
-                      <span className={`text-xs px-2 py-0.5 rounded ${getSeverityBadgeColor(gap.severity)}`}>
-                        {gap.severity.toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="text-sm font-medium mb-2">{gap.title}</div>
-                    <div className="text-xs text-gray-600 mb-2">
-                      Gap: {gap.gap.toFixed(0)}% • Score: {gap.score.toFixed(0)}% •{' '}
-                      {gap.answeredQuestions}/{gap.totalQuestions} questions answered
-                    </div>
-                    {gap.recommendations && gap.recommendations.length > 0 && (
-                      <div className="mt-2">
-                        <div className="text-xs font-semibold text-gray-700 mb-1">Recommendations:</div>
-                        <ul className="list-disc list-inside text-xs text-gray-600 space-y-1">
-                          {gap.recommendations.slice(0, 2).map((rec, idx) => (
-                            <li key={idx}>{rec}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                  <div className="ml-4">
-                    <div className="w-16 bg-gray-200 rounded-full h-2">
-                      <div
-                        className={`h-2 rounded-full ${
-                          gap.severity === 'critical' ? 'bg-red-500' : 'bg-orange-500'
-                        }`}
-                        style={{ width: `${gap.gap}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* High Priority Gaps */}
-      {gapAnalysis.highGaps.length > 0 && gapAnalysis.criticalGaps.length === 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h4 className="text-sm font-semibold text-gray-700 mb-4">High Priority Gaps</h4>
-          <div className="space-y-3">
-            {gapAnalysis.highGaps.slice(0, 5).map((gap: any) => (
-              <div
-                key={gap.requirementId}
-                className={`p-4 border-2 rounded-lg ${
-                  onGapClick ? 'cursor-pointer hover:bg-gray-50' : ''
-                } ${getSeverityColor(gap.severity)}`}
-                onClick={() => onGapClick?.(gap)}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-semibold">{gap.code}</span>
-                      {gap.mandatory && (
-                        <span className="text-xs bg-red-200 text-red-800 px-2 py-0.5 rounded">
-                          Mandatory
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-sm font-medium mb-1">{gap.title}</div>
-                    <div className="text-xs text-gray-600">
-                      Gap: {gap.gap.toFixed(0)}% • Score: {gap.score.toFixed(0)}%
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Empty State */}
-      {allGaps.length === 0 && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
-          <div className="text-green-800 font-semibold mb-2">✓ No Gaps Identified</div>
-          <div className="text-sm text-green-600">
-            Your assessment shows full compliance with IFRS {gapAnalysis.ifrsStandard} requirements.
-          </div>
-        </div>
-      )}
-    </div>
+    </GapAnalysisContainer>
   );
 }

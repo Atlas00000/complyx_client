@@ -1,81 +1,74 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, memo, useMemo } from 'react';
 import { useAssessmentStore } from '@/stores/assessmentStore';
-import { DashboardAPI } from '@/lib/api/dashboardApi';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { parseError, ErrorInfo } from '@/lib/utils/errorHandler';
+import { useProgressHistory } from '@/hooks/useDashboardApi';
+import Skeleton, { SkeletonText } from '@/components/ui/Loading';
+import { Button } from '@/components/ui';
+import ProgressChartsContainer from './ProgressChartsContainer';
+import ProgressChartsHeader from './ProgressChartsHeader';
+import EnhancedAreaChart from './EnhancedAreaChart';
 
 interface ProgressChartsProps {
   history?: Array<{ date: string; progress: number; answeredCount: number }>;
   showAreaChart?: boolean;
   userId?: string;
   assessmentId?: string;
-  autoFetch?: boolean; // Auto-fetch historical data from API
+  autoFetch?: boolean;
 }
 
-export function ProgressCharts({ 
+function ProgressChartsComponent({ 
   history, 
-  showAreaChart = true,
+  showAreaChart: _showAreaChart = true,
   userId,
   assessmentId,
   autoFetch = false,
 }: ProgressChartsProps) {
-  const { progress, answeredCount, totalCount, answers, setProgress } = useAssessmentStore();
-  const [apiHistory, setApiHistory] = useState<Array<{ date: string; progress: number; answeredCount: number }>>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { progress, answeredCount, totalCount, answers } = useAssessmentStore();
+  const [errorInfo, setErrorInfo] = useState<ErrorInfo | null>(null);
 
-  // Auto-fetch historical data from API if enabled
-  useEffect(() => {
-    if (autoFetch) {
-      setLoading(true);
-      setError(null);
-      DashboardAPI.getDashboardData({ userId, assessmentId })
-        .then((data) => {
-          // Update progress from API
-          if (data.progress) {
-            setProgress(
-              data.progress.percentage,
-              data.progress.answeredCount,
-              data.progress.totalCount
-            );
-          }
-
-          // Convert historical trends to chart data format
-          if (data.historicalTrends?.assessments) {
-            const historicalData = data.historicalTrends.assessments.map((assessment) => {
-              const date = typeof assessment.createdAt === 'string'
-                ? new Date(assessment.createdAt)
-                : assessment.createdAt;
-              return {
-                date: date.toISOString().split('T')[0],
-                progress: assessment.progress,
-                answeredCount: Math.round((assessment.progress / 100) * (data.progress?.totalCount || 0)),
-              };
-            });
-            setApiHistory(historicalData);
-          }
-
-          // Add current progress to history if not already present
-          if (data.progress && apiHistory.length === 0) {
-            setApiHistory([{
-              date: new Date().toISOString().split('T')[0],
-              progress: data.progress.percentage,
-              answeredCount: data.progress.answeredCount,
-            }]);
-          }
-        })
-        .catch((err) => {
-          console.error('Failed to fetch historical data:', err);
-          setError(err instanceof Error ? err.message : 'Failed to load historical data');
-        })
-        .finally(() => {
-          setLoading(false);
-        });
+  // Use React Query for API calls with automatic caching
+  const {
+    data: apiHistoryData,
+    isLoading: loading,
+    error: queryError,
+    refetch,
+  } = useProgressHistory(
+    userId,
+    assessmentId,
+    {
+      enabled: autoFetch,
+      staleTime: 5 * 60 * 1000, // 5 minutes
     }
-  }, [autoFetch, userId, assessmentId, setProgress, apiHistory.length]);
+  );
 
-  // Generate mock history if not provided (based on answers)
+  // Parse and handle errors from React Query
+  useEffect(() => {
+    if (queryError) {
+      const parsedError = parseError(queryError);
+      setErrorInfo(parsedError);
+    } else {
+      setErrorInfo(null);
+    }
+  }, [queryError]);
+
+  // Memoize error message for display
+  const error = useMemo(() => {
+    return errorInfo?.userMessage || null;
+  }, [errorInfo]);
+
+  // Handle retry using React Query refetch
+  const handleRetry = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
+  // Convert API history data to expected format
+  const apiHistory = useMemo(() => {
+    return apiHistoryData || [];
+  }, [apiHistoryData]);
+
+  // Generate mock history if not provided
   const generateHistory = (): Array<{ date: string; progress: number; answeredCount: number }> => {
     if (!history && answers.length > 0) {
       const historyData: Array<{ date: string; progress: number; answeredCount: number }> = [];
@@ -88,13 +81,11 @@ export function ProgressCharts({
       let cumulativeCount = 0;
       const currentDate = new Date();
       
-      // Create data points for each answer
-      sortedAnswers.forEach((answer, index) => {
+      sortedAnswers.forEach((answer) => {
         cumulativeCount++;
         const timestamp = answer.timestamp instanceof Date ? answer.timestamp : new Date(answer.timestamp);
         const progressValue = totalCount > 0 ? (cumulativeCount / totalCount) * 100 : 0;
         
-        // Group by day or hour
         const timeKey = timestamp.toISOString().split('T')[0];
         const existingIndex = historyData.findIndex(d => d.date === timeKey);
         
@@ -110,7 +101,6 @@ export function ProgressCharts({
         }
       });
 
-      // Add current point
       if (historyData.length === 0 || historyData[historyData.length - 1].date !== currentDate.toISOString().split('T')[0]) {
         historyData.push({
           date: currentDate.toISOString().split('T')[0],
@@ -122,13 +112,22 @@ export function ProgressCharts({
       return historyData;
     }
 
-    return history || apiHistory.length > 0 ? apiHistory : [
+    const transformedHistory = apiHistory.length > 0 
+      ? apiHistory.map(item => ({
+          date: typeof item.createdAt === 'string' 
+            ? item.createdAt.split('T')[0] 
+            : new Date(item.createdAt).toISOString().split('T')[0],
+          progress: item.progress,
+          answeredCount: Math.round((item.progress / 100) * totalCount),
+        }))
+      : [];
+
+    return history || transformedHistory.length > 0 ? transformedHistory : [
       { date: new Date().toISOString().split('T')[0], progress, answeredCount },
     ];
   };
 
-  // Use provided history, then API history, then generated history
-  const chartData = history || apiHistory.length > 0 ? apiHistory : generateHistory();
+  const chartData = generateHistory();
 
   // Format date for display
   const formatDate = (dateString: string) => {
@@ -138,128 +137,89 @@ export function ProgressCharts({
 
   if (loading && autoFetch) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-gray-500">Loading progress history...</div>
-      </div>
+      <ProgressChartsContainer>
+        <div className="flex items-center justify-center h-full">
+          <div className="space-y-4">
+            <Skeleton width={300} height={200} rounded="lg" />
+            <SkeletonText lines={2} />
+          </div>
+        </div>
+      </ProgressChartsContainer>
     );
   }
 
-  if (error && autoFetch) {
+  if (error && errorInfo && autoFetch) {
+
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-red-500">Error: {error}</div>
-      </div>
+      <ProgressChartsContainer>
+        <div className="flex flex-col items-center justify-center text-center py-8 px-4 h-full">
+          <div className="mb-4">
+            {errorInfo.type === 'auth' && (
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center">
+                <svg className="w-8 h-8 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+            )}
+            {errorInfo.type === 'rateLimit' && (
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
+                <svg className="w-8 h-8 text-orange-600 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            )}
+            {(errorInfo.type === 'network' || errorInfo.type === 'server' || errorInfo.type === 'unknown') && (
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
+                <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            )}
+          </div>
+          
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-2">
+            {errorInfo.type === 'auth' && 'Authentication Required'}
+            {errorInfo.type === 'rateLimit' && 'Too Many Requests'}
+            {errorInfo.type === 'network' && 'Connection Error'}
+            {errorInfo.type === 'server' && 'Server Error'}
+            {errorInfo.type === 'unknown' && 'Error Loading Data'}
+          </h3>
+          
+          <p className="text-sm text-gray-600 dark:text-slate-400 mb-6 max-w-md">
+            {error}
+          </p>
+
+          {errorInfo.canRetry && (
+            <Button variant="primary" onClick={handleRetry} className="mt-2">
+              Try Again
+            </Button>
+          )}
+
+          {errorInfo.type === 'auth' && (
+            <Button variant="primary" onClick={() => window.location.href = '/auth/login'} className="mt-2">
+              Go to Login
+            </Button>
+          )}
+        </div>
+      </ProgressChartsContainer>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Progress Over Time - Line Chart */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Progress Over Time</h3>
-        {chartData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-              <XAxis 
-                dataKey="date" 
-                stroke="#6B7280"
-                fontSize={12}
-                tickFormatter={formatDate}
-              />
-              <YAxis 
-                stroke="#6B7280"
-                fontSize={12}
-                domain={[0, 100]}
-                tickFormatter={(value) => `${value}%`}
-              />
-              <Tooltip 
-                formatter={(value: number) => [`${value.toFixed(1)}%`, 'Progress']}
-                labelFormatter={(label) => `Date: ${formatDate(label)}`}
-                contentStyle={{ backgroundColor: '#fff', border: '1px solid #E5E7EB', borderRadius: '8px' }}
-              />
-              <Legend />
-              <Line 
-                type="monotone" 
-                dataKey="progress" 
-                stroke="#2563EB" 
-                strokeWidth={2}
-                name="Progress %"
-                dot={{ fill: '#2563EB', r: 4 }}
-                activeDot={{ r: 6 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        ) : (
-          <div className="flex items-center justify-center h-64 text-gray-500">
-            No progress data available
-          </div>
-        )}
-      </div>
-
-      {/* Questions Answered Over Time - Area Chart */}
-      {showAreaChart && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Questions Answered Over Time</h3>
-          {chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="colorAnswered" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                <XAxis 
-                  dataKey="date" 
-                  stroke="#6B7280"
-                  fontSize={12}
-                  tickFormatter={formatDate}
-                />
-                <YAxis 
-                  stroke="#6B7280"
-                  fontSize={12}
-                />
-                <Tooltip 
-                  formatter={(value: number) => [value, 'Questions Answered']}
-                  labelFormatter={(label) => `Date: ${formatDate(label)}`}
-                  contentStyle={{ backgroundColor: '#fff', border: '1px solid #E5E7EB', borderRadius: '8px' }}
-                />
-                <Legend />
-                <Area 
-                  type="monotone" 
-                  dataKey="answeredCount" 
-                  stroke="#10B981" 
-                  fillOpacity={1}
-                  fill="url(#colorAnswered)"
-                  name="Questions Answered"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex items-center justify-center h-64 text-gray-500">
-              No data available
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-          <div className="text-sm text-gray-600 mb-1">Current Progress</div>
-          <div className="text-2xl font-bold text-gray-900">{progress.toFixed(0)}%</div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-          <div className="text-sm text-gray-600 mb-1">Questions Answered</div>
-          <div className="text-2xl font-bold text-gray-900">{answeredCount} / {totalCount}</div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-          <div className="text-sm text-gray-600 mb-1">Data Points</div>
-          <div className="text-2xl font-bold text-gray-900">{chartData.length}</div>
-        </div>
-      </div>
-    </div>
+    <ProgressChartsContainer>
+      <ProgressChartsHeader />
+      <EnhancedAreaChart data={chartData} formatDate={formatDate} />
+    </ProgressChartsContainer>
   );
 }
+
+// Memoize ProgressCharts to prevent unnecessary re-renders
+export const ProgressCharts = memo(ProgressChartsComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.history === nextProps.history &&
+    prevProps.showAreaChart === nextProps.showAreaChart &&
+    prevProps.userId === nextProps.userId &&
+    prevProps.assessmentId === nextProps.assessmentId &&
+    prevProps.autoFetch === nextProps.autoFetch
+  );
+});

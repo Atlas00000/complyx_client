@@ -1,15 +1,21 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useChatStore } from '@/stores/chatStore';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useChatSearch } from '@/hooks/useChatSearch';
-import { Header, Container } from '@/components/layout';
-import { Button, Card } from '@/components/ui';
+import { usePageLoading } from '@/hooks/usePageLoading';
+import { Header, ResponsiveLayout, MobileHeader, MobileNavigation } from '@/components/layout';
+import PageBackground from '@/components/layout/PageBackground';
+import PageOverlay from '@/components/layout/PageOverlay';
+import { useIsMobile } from '@/hooks/useMediaQuery';
+import { Button } from '@/components/ui';
+import LoadingScreen from '@/components/ui/loading/LoadingScreen';
 import ChatInterface from '@/components/chat/ChatInterface';
 import MessageBubble from '@/components/chat/MessageBubble';
 import ChatInput from '@/components/chat/ChatInput';
+import MobileChatInput from '@/components/chat/MobileChatInput';
 import TypingIndicator from '@/components/chat/TypingIndicator';
 import SearchInput from '@/components/chat/SearchInput';
 import SuggestedPrompts from '@/components/chat/SuggestedPrompts';
@@ -18,6 +24,11 @@ import SessionList from '@/components/chat/SessionList';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 export default function Home() {
+  const isMobile = useIsMobile();
+  
+  // Page loading state - show for at least 1 second to ensure visibility
+  const isPageLoading = usePageLoading({ minLoadingTime: 1000 });
+  
   const {
     messages,
     isTyping,
@@ -29,7 +40,6 @@ export default function Home() {
     setIfrsStandard,
     clearMessages,
     setCurrentSession,
-    loadSessionMessages,
   } = useChatStore();
 
   const {
@@ -101,15 +111,16 @@ export default function Home() {
     }
   }, [setIfrsStandard]);
 
-  const handleStartEdit = (messageId: string) => {
+  // Memoize event handlers to prevent unnecessary re-renders
+  const handleStartEdit = useCallback((messageId: string) => {
     setEditingMessageId(messageId);
-  };
+  }, []);
 
-  const handleCancelEdit = () => {
+  const handleCancelEdit = useCallback(() => {
     setEditingMessageId(null);
-  };
+  }, []);
 
-  const handleEditMessage = async (messageId: string, newContent: string) => {
+  const handleEditMessage = useCallback(async (messageId: string, newContent: string) => {
     const messageIndex = messages.findIndex((m) => m.id === messageId);
     if (messageIndex === -1 || !messages[messageIndex].isUser) return;
 
@@ -174,9 +185,9 @@ export default function Home() {
     } finally {
       setIsTyping(false);
     }
-  };
+  }, [messages, removeMessage, updateMessage, addMessage, setIsTyping]);
 
-  const handleRegenerate = async (messageId: string) => {
+  const handleRegenerate = useCallback(async (messageId: string) => {
     const messageIndex = messages.findIndex((m) => m.id === messageId);
     if (messageIndex === -1 || messages[messageIndex].isUser) return;
 
@@ -241,7 +252,7 @@ export default function Home() {
       setIsTyping(false);
       setRegeneratingMessageId(null);
     }
-  };
+  }, [messages, removeMessage, addMessage, setIsTyping, setRegeneratingMessageId]);
 
   useEffect(() => {
     if (currentSessionId && messages.length > 0) {
@@ -253,20 +264,13 @@ export default function Home() {
     }
   }, [messages, currentSessionId, updateSessionPreview, updateSessionMessageCount]);
 
-  const handleCreateSession = () => {
-    const newSessionId = createSession();
-    setCurrentSession(newSessionId);
-    setActiveSession(newSessionId);
-    setWelcomeSent(false);
-  };
-
-  const handleSelectSession = (sessionId: string) => {
+  const handleSelectSession = useCallback((sessionId: string) => {
     setActiveSession(sessionId);
     setCurrentSession(sessionId);
     setWelcomeSent(false);
-  };
+  }, [setActiveSession, setCurrentSession]);
 
-  const handleSendMessage = async (content: string) => {
+  const handleSendMessage = useCallback(async (content: string) => {
     if (!currentSessionId) {
       const newSessionId = createSession();
       setCurrentSession(newSessionId);
@@ -322,35 +326,37 @@ export default function Home() {
     } finally {
       setIsTyping(false);
     }
-  };
+  }, [currentSessionId, messages, addMessage, setIsTyping, createSession, setCurrentSession, setActiveSession]);
 
-  const handleFileUpload = (file: File) => {
+  const handleFileUpload = useCallback((file: File) => {
     console.log('File uploaded:', file.name);
-  };
+  }, []);
 
-  const handleClearChat = () => {
+  const handleClearChat = useCallback(() => {
     if (confirm('Are you sure you want to clear the chat? This will remove all messages.')) {
       clearMessages();
       setWelcomeSent(false);
       resetSearch();
     }
-  };
+  }, [clearMessages, resetSearch]);
 
-  const handleSearch = (query: string) => {
+  const handleSearch = useCallback((query: string) => {
     setSearchQuery(query);
-  };
+  }, [setSearchQuery]);
 
-  const handleSearchClose = () => {
+  const handleSearchClose = useCallback(() => {
     setIsSearchOpen(false);
     resetSearch();
-  };
+  }, [resetSearch]);
 
-  const handleSearchToggle = () => {
-    setIsSearchOpen(!isSearchOpen);
-    if (isSearchOpen) {
-      resetSearch();
-    }
-  };
+  const handleSearchToggle = useCallback(() => {
+    setIsSearchOpen((prev) => {
+      if (prev) {
+        resetSearch();
+      }
+      return !prev;
+    });
+  }, [resetSearch]);
 
   useEffect(() => {
     if (currentResult?.messageId) {
@@ -389,8 +395,41 @@ export default function Home() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isSearchOpen, hasResults, searchQuery, goToNextMatch, goToPreviousMatch, resetSearch]);
 
+  // Memoize mobile navigation items to prevent recreation on every render
+  const mobileNavItems = useMemo(() => [
+    {
+      label: 'Chat',
+      href: '/',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+        </svg>
+      ),
+    },
+    {
+      label: 'Dashboard',
+      href: '/dashboard',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+      ),
+    },
+  ], []);
+
+  // Show loading screen during initial page load
+  if (isPageLoading) {
+    return <LoadingScreen text="Loading Complyx..." />;
+  }
+
   return (
-    <div className="flex flex-col h-screen bg-gray-50 relative">
+    <ResponsiveLayout>
+      {/* Animated Background */}
+      <PageBackground />
+      
+      {/* Overlay Effects */}
+      <PageOverlay />
+      
       {/* Session List */}
       <SessionList
         isOpen={isSessionListOpen}
@@ -411,9 +450,9 @@ export default function Home() {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="absolute top-16 left-1/2 transform -translate-x-1/2 bg-white border border-gray-200 rounded-lg px-4 py-2 shadow-lg z-10 flex items-center gap-4"
+          className="absolute top-16 left-1/2 transform -translate-x-1/2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg px-4 py-2 shadow-lg z-10 flex items-center gap-4"
         >
-          <span className="text-sm text-gray-600">
+          <span className="text-sm text-gray-600 dark:text-slate-300">
             {currentMatchIndex + 1} of {searchResults.length} messages ({totalMatches} matches)
           </span>
           <div className="flex items-center gap-2">
@@ -437,71 +476,144 @@ export default function Home() {
         </motion.div>
       )}
 
-      {/* Header */}
-      <Header
-        title="Complyx"
-        subtitle="IFRS S1 & S2 Readiness Assessment Assistant"
-        leftActions={
-          <Button
-            variant="ghost"
-            size="medium"
-            onClick={() => setIsSessionListOpen(true)}
-            title="Chat history"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            History
-          </Button>
-        }
-        rightActions={
-          <div className="flex items-center gap-3">
-            {messages.length > 0 && (
-              <>
+      {/* Header - Mobile or Desktop */}
+      {isMobile ? (
+        <MobileHeader
+          title="Complyx"
+          leftActions={
+            <Button
+              variant="ghost"
+              size="small"
+              onClick={() => setIsSessionListOpen(true)}
+              title="Chat history"
+              className="p-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </Button>
+          }
+          rightActions={
+            <div className="flex items-center gap-1">
+              {messages.length > 0 && (
                 <Button
                   variant="ghost"
-                  size="medium"
+                  size="small"
                   onClick={handleSearchToggle}
-                  title="Search messages (Cmd/Ctrl + K)"
+                  title="Search"
+                  className="p-2"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
-                  Search
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="medium"
-                  onClick={handleClearChat}
-                  title="Clear chat history"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                  Clear Chat
-                </Button>
-              </>
-            )}
+              )}
+            </div>
+          }
+          onMenuClick={() => setIsSessionListOpen(true)}
+        />
+      ) : (
+        <Header
+          title="Complyx"
+          subtitle="IFRS S1 & S2 Readiness Assessment Assistant"
+          leftActions={
             <Button
-              variant="primary"
+              variant="ghost"
               size="medium"
-              onClick={() => window.location.href = '/dashboard'}
+              onClick={() => setIsSessionListOpen(true)}
+              title="Chat history"
             >
-              Dashboard
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              History
             </Button>
-          </div>
-        }
-      />
+          }
+          rightActions={
+            <div className="flex items-center gap-3">
+              {messages.length > 0 && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="medium"
+                    onClick={handleSearchToggle}
+                    title="Search messages (Cmd/Ctrl + K)"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    Search
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="medium"
+                    onClick={handleClearChat}
+                    title="Clear chat history"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Clear Chat
+                  </Button>
+                </>
+              )}
+              <Button
+                variant="primary"
+                size="medium"
+                onClick={() => window.location.href = '/dashboard'}
+              >
+                Dashboard
+              </Button>
+            </div>
+          }
+        />
+      )}
 
       {/* Chat Interface */}
-      <div className="flex-1 min-h-0 flex flex-col">
-        <div className="flex-1 min-h-0">
-          <ChatInterface>
-            {messages.map((message) => {
-              const isHighlighted = currentResult?.messageId === message.id;
-              return (
+      <div className={`flex-1 min-h-0 flex flex-col ${isMobile ? 'pb-24' : ''}`}>
+        <ChatInterface 
+          isEmpty={messages.length === 0 && !isTyping}
+          showSuggestedPrompts={messages.length <= 1 && !isTyping && !isSearchOpen}
+          suggestedPrompts={
+            messages.length <= 1 ? (
+              <SuggestedPrompts
+                onSelectPrompt={handleSendMessage}
+                visible={!isTyping && !isSearchOpen}
+                maxPrompts={isMobile ? 4 : 6}
+              />
+            ) : null
+          }
+          chatInput={
+            isMobile ? (
+              <MobileChatInput
+                onSend={handleSendMessage}
+                onFileUpload={handleFileUpload}
+                placeholder="Ask me anything about IFRS standards..."
+                fixed={!(messages.length <= 1 && !isTyping && !isSearchOpen)}
+              />
+            ) : (
+              <ChatInput
+                onSendMessage={handleSendMessage}
+                onFileUpload={handleFileUpload}
+                placeholder="Ask me anything about IFRS standards, accounting, or compliance..."
+              />
+            )
+          }
+        >
+          {messages.map((message, index) => {
+            const isHighlighted = currentResult?.messageId === message.id;
+            return (
+              <motion.div
+                key={message.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  duration: 0.4,
+                  delay: index * 0.05,
+                  ease: 'easeOut',
+                }}
+              >
                 <MessageBubble
-                  key={message.id}
                   messageId={message.id}
                   message={message.content}
                   isUser={message.isUser}
@@ -516,28 +628,17 @@ export default function Home() {
                   onStartEdit={message.isUser ? handleStartEdit : undefined}
                   onCancelEdit={message.isUser ? handleCancelEdit : undefined}
                 />
-              );
-            })}
-            {isTyping && <TypingIndicator isTyping={isTyping} />}
-          </ChatInterface>
-        </div>
-
-        {/* Suggested Prompts */}
-        {messages.length <= 1 && (
-          <SuggestedPrompts
-            onSelectPrompt={handleSendMessage}
-            visible={!isTyping && !isSearchOpen}
-            maxPrompts={6}
-          />
-        )}
-
-        {/* Chat Input */}
-        <ChatInput
-          onSendMessage={handleSendMessage}
-          onFileUpload={handleFileUpload}
-          placeholder="Ask me anything about IFRS standards, accounting, or compliance..."
-        />
+              </motion.div>
+            );
+          })}
+          {isTyping && <TypingIndicator isTyping={isTyping} />}
+        </ChatInterface>
       </div>
-    </div>
+
+      {/* Mobile Bottom Navigation */}
+      {isMobile && (
+        <MobileNavigation items={mobileNavItems} />
+      )}
+    </ResponsiveLayout>
   );
 }

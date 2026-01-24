@@ -133,7 +133,7 @@ export class PDFGenerator {
   /**
    * Add summary section
    */
-  private addSummarySection(data: ReportData, options: Required<ReportOptions>): void {
+  private addSummarySection(data: ReportData, _options: Required<ReportOptions>): void {
     this.addSectionTitle('Executive Summary');
 
     this.doc.setFontSize(11);
@@ -164,7 +164,7 @@ export class PDFGenerator {
   /**
    * Add scores section
    */
-  private addScoresSection(scores: AssessmentScore, options: Required<ReportOptions>): void {
+  private addScoresSection(scores: AssessmentScore, _options: Required<ReportOptions>): void {
     this.addSectionTitle('Assessment Scores');
 
     this.doc.setFontSize(12);
@@ -206,7 +206,7 @@ export class PDFGenerator {
   /**
    * Add answers section
    */
-  private addAnswersSection(answers: AssessmentAnswer[], options: Required<ReportOptions>): void {
+  private addAnswersSection(answers: AssessmentAnswer[], _options: Required<ReportOptions>): void {
     this.addSectionTitle('Assessment Answers');
 
     this.doc.setFontSize(11);

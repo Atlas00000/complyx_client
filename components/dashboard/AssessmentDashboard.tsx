@@ -53,21 +53,21 @@ export function AssessmentDashboard({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6 lg:p-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 p-4 md:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+        <div className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 p-6 shadow-sm">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">Assessment Dashboard</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-2">Assessment Dashboard</h1>
               {ifrsStandard && (
-                <p className="text-gray-600">IFRS {ifrsStandard} • {getPhaseLabel(currentPhase)}</p>
+                <p className="text-gray-600 dark:text-slate-400">IFRS {ifrsStandard} • {getPhaseLabel(currentPhase)}</p>
               )}
             </div>
             <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
               <div className="flex items-center gap-3">
                 {assessmentId && (
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm text-gray-500 dark:text-slate-400">
                     ID: <span className="font-mono">{assessmentId.substring(0, 8)}...</span>
                   </div>
                 )}
@@ -84,14 +84,14 @@ export function AssessmentDashboard({
 
         {/* Progress Section */}
         {showProgress && (
-          <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Progress</h2>
+          <div className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4">Progress</h2>
             <div className="space-y-4">
-              <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
+              <div className="flex items-center justify-between text-sm text-gray-600 dark:text-slate-400 mb-2">
                 <span>Assessment Progress</span>
-                <span className="font-semibold text-gray-900">{progress.toFixed(0)}%</span>
+                <span className="font-semibold text-gray-900 dark:text-slate-100">{progress.toFixed(0)}%</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-4">
+              <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-4">
                 <div
                   className={`h-4 rounded-full transition-all ${
                     progress >= 70
@@ -103,7 +103,7 @@ export function AssessmentDashboard({
                   style={{ width: `${Math.min(progress, 100)}%` }}
                 />
               </div>
-              <div className="flex items-center justify-between text-xs text-gray-500">
+              <div className="flex items-center justify-between text-xs text-gray-500 dark:text-slate-400">
                 <span>{answeredCount} questions answered</span>
                 <span>{totalCount} total questions</span>
               </div>
@@ -116,21 +116,21 @@ export function AssessmentDashboard({
           {/* Scores Section - Takes full width if only scores shown */}
           {showScores && (
             <div className={`${!showCompliance && !children ? 'lg:col-span-2 xl:col-span-3' : 'lg:col-span-2 xl:col-span-2'}`}>
-              <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm h-full">
+              <div className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 p-6 shadow-sm h-full">
                 {scores ? (
                   <>
-                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Readiness Scores</h2>
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4">Readiness Scores</h2>
                     <div className="space-y-4">
-                      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                        <span className="text-sm font-medium text-gray-700">Overall Score</span>
-                        <span className="text-2xl font-bold text-gray-900">{scores.overallScore.toFixed(0)}%</span>
+                      <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
+                        <span className="text-sm font-medium text-gray-700 dark:text-slate-300">Overall Score</span>
+                        <span className="text-2xl font-bold text-gray-900 dark:text-slate-100">{scores.overallScore.toFixed(0)}%</span>
                       </div>
                       {scores.categoryScores && scores.categoryScores.length > 0 && (
                         <div className="grid grid-cols-2 gap-4">
                           {scores.categoryScores.map((category, index) => (
-                            <div key={index} className="p-3 bg-gray-50 rounded-lg">
-                              <div className="text-xs text-gray-600 mb-1 capitalize">{category.category}</div>
-                              <div className="text-xl font-bold text-gray-900">{category.percentage.toFixed(0)}%</div>
+                            <div key={index} className="p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
+                              <div className="text-xs text-gray-600 dark:text-slate-400 mb-1 capitalize">{category.category}</div>
+                              <div className="text-xl font-bold text-gray-900 dark:text-slate-100">{category.percentage.toFixed(0)}%</div>
                             </div>
                           ))}
                         </div>
@@ -138,7 +138,7 @@ export function AssessmentDashboard({
                     </div>
                   </>
                 ) : (
-                  <div className="flex items-center justify-center h-32 text-gray-500">
+                  <div className="flex items-center justify-center h-32 text-gray-500 dark:text-slate-400">
                     No scores available yet
                   </div>
                 )}
@@ -156,9 +156,9 @@ export function AssessmentDashboard({
           {/* Compliance Matrix Section */}
           {showCompliance && (
             <div className="lg:col-span-1">
-              <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Compliance Status</h2>
-                <div className="text-sm text-gray-500">
+              <div className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 p-6 shadow-sm">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4">Compliance Status</h2>
+                <div className="text-sm text-gray-500 dark:text-slate-400">
                   Compliance matrix will be displayed here
                 </div>
               </div>
@@ -170,9 +170,9 @@ export function AssessmentDashboard({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Placeholder for progress charts */}
           <div className="md:col-span-2 lg:col-span-3">
-            <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Progress Over Time</h2>
-              <div className="text-sm text-gray-500">
+            <div className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4">Progress Over Time</h2>
+              <div className="text-sm text-gray-500 dark:text-slate-400">
                 Progress charts will be displayed here
               </div>
             </div>
@@ -180,9 +180,9 @@ export function AssessmentDashboard({
 
           {/* Placeholder for category breakdown */}
           <div className="md:col-span-2 lg:col-span-3">
-            <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Category Breakdown</h2>
-              <div className="text-sm text-gray-500">
+            <div className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4">Category Breakdown</h2>
+              <div className="text-sm text-gray-500 dark:text-slate-400">
                 Category breakdown charts will be displayed here
               </div>
             </div>

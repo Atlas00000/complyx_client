@@ -3,7 +3,7 @@
 import { FormHTMLAttributes, ReactNode } from 'react';
 import { motion } from 'framer-motion';
 
-export interface FormProps extends FormHTMLAttributes<HTMLFormElement> {
+export interface FormProps extends Omit<FormHTMLAttributes<HTMLFormElement>, 'onDrag' | 'onDragEnd' | 'onDragEnter' | 'onDragExit' | 'onDragLeave' | 'onDragStart' | 'onAnimationStart' | 'onAnimationEnd' | 'onAnimationIteration'> {
   children: ReactNode;
   onSubmit?: (e: React.FormEvent<HTMLFormElement>) => void;
 }

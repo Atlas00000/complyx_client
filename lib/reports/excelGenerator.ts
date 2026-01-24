@@ -120,7 +120,7 @@ export class ExcelGenerator {
     if (scores.categoryScores && scores.categoryScores.length > 0) {
       for (const category of scores.categoryScores) {
         const categoryName = category.category.charAt(0).toUpperCase() + category.category.slice(1);
-        scoresData.push([categoryName, `${category.percentage.toFixed(2)}%`, category.score]);
+        scoresData.push([categoryName, `${category.percentage.toFixed(2)}%`, category.score.toString()]);
       }
     }
 
@@ -171,7 +171,7 @@ export class ExcelGenerator {
         : 'N/A';
       
       answersData.push([
-        index + 1,
+        (index + 1).toString(),
         answer.questionId,
         answer.value,
         timestamp,

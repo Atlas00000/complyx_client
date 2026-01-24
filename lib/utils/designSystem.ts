@@ -10,41 +10,78 @@
  */
 export const getColorVariant = (
   color: 'primary' | 'secondary' | 'accent' | 'warning' | 'error',
-  variant: 'default' | 'light' | 'dark' | 'muted' = 'default'
+  variant: 'default' | 'light' | 'dark' | 'muted' = 'default',
+  isDark: boolean = false
 ): string => {
-  const colorMap = {
+  // Light mode colors (Forest Green & Slate)
+  const lightColorMap = {
     primary: {
-      default: '#2563EB',
-      light: '#3B82F6',
-      dark: '#1E40AF',
-      muted: '#60A5FA',
+      default: '#065F46', // Forest Green
+      light: '#10B981', // Emerald
+      dark: '#047857', // Dark Emerald
+      muted: '#6B9B7A', // Sage Green
     },
     secondary: {
-      default: '#10B981',
-      light: '#34D399',
-      dark: '#059669',
-      muted: '#6EE7B7',
+      default: '#6B9B7A', // Sage Green
+      light: '#6EE7B7', // Light Emerald
+      dark: '#047857', // Dark Emerald
+      muted: '#A7F3D0', // Light Sage
     },
     accent: {
-      default: '#8B5CF6',
-      light: '#A78BFA',
-      dark: '#7C3AED',
-      muted: '#C4B5FD',
+      default: '#14B8A6', // Teal
+      light: '#5EEAD4', // Light Teal
+      dark: '#0D9488', // Dark Teal
+      muted: '#2DD4BF', // Medium Teal
     },
     warning: {
-      default: '#F59E0B',
-      light: '#FBBF24',
-      dark: '#D97706',
-      muted: '#FCD34D',
+      default: '#F97316', // Orange
+      light: '#FB923C', // Light Orange
+      dark: '#EA580C', // Dark Orange
+      muted: '#FDBA74', // Muted Orange
     },
     error: {
-      default: '#EF4444',
-      light: '#F87171',
-      dark: '#DC2626',
-      muted: '#FCA5A5',
+      default: '#EF4444', // Red
+      light: '#F87171', // Light Red
+      dark: '#DC2626', // Dark Red
+      muted: '#FCA5A5', // Muted Red
     },
   };
 
+  // Dark mode colors (Balanced Dark Slate)
+  const darkColorMap = {
+    primary: {
+      default: '#10B981', // Emerald (brighter for dark)
+      light: '#34D399', // Light Emerald
+      dark: '#059669', // Dark Emerald
+      muted: '#6EE7B7', // Muted Emerald
+    },
+    secondary: {
+      default: '#6EE7B7', // Sage
+      light: '#A7F3D0', // Light Sage
+      dark: '#34D399', // Dark Sage
+      muted: '#D1FAE5', // Muted Sage
+    },
+    accent: {
+      default: '#14B8A6', // Teal
+      light: '#5EEAD4', // Light Teal
+      dark: '#0D9488', // Dark Teal
+      muted: '#2DD4BF', // Medium Teal
+    },
+    warning: {
+      default: '#FB923C', // Orange
+      light: '#FCD34D', // Light Orange
+      dark: '#F97316', // Dark Orange
+      muted: '#FED7AA', // Muted Orange
+    },
+    error: {
+      default: '#F87171', // Red
+      light: '#FCA5A5', // Light Red
+      dark: '#EF4444', // Dark Red
+      muted: '#FECACA', // Muted Red
+    },
+  };
+
+  const colorMap = isDark ? darkColorMap : lightColorMap;
   return colorMap[color][variant];
 };
 

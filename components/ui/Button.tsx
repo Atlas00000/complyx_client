@@ -3,7 +3,7 @@
 import { ButtonHTMLAttributes, forwardRef } from 'react';
 import { motion } from 'framer-motion';
 
-export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onDrag' | 'onDragEnd' | 'onDragEnter' | 'onDragExit' | 'onDragLeave' | 'onDragStart' | 'onAnimationStart' | 'onAnimationEnd' | 'onAnimationIteration'> {
   variant?: 'primary' | 'secondary' | 'ghost';
   size?: 'small' | 'medium' | 'large';
   isLoading?: boolean;
@@ -34,8 +34,8 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     // Variant styles
     const variantStyles = {
       primary: 'bg-primary text-white hover:bg-primary-dark focus:ring-primary active:scale-[0.98] shadow-primary hover:shadow-primary-lg',
-      secondary: 'bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200 hover:border-gray-300 focus:ring-gray-500 active:scale-[0.98]',
-      ghost: 'bg-transparent text-gray-600 hover:bg-gray-100 focus:ring-gray-400 active:scale-[0.98]',
+      secondary: 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 border border-gray-200 dark:border-slate-600 hover:bg-gray-200 dark:hover:bg-slate-600 hover:border-gray-300 dark:hover:border-slate-500 focus:ring-gray-500 active:scale-[0.98]',
+      ghost: 'bg-transparent text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 focus:ring-gray-400 active:scale-[0.98]',
     };
     
     // Size styles

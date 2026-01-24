@@ -43,9 +43,9 @@ const Accordion = ({
 
   // Variant styles
   const variantStyles = {
-    default: 'border border-gray-200 rounded-lg',
-    bordered: 'border border-gray-200',
-    separated: 'border border-gray-200 rounded-lg mb-2',
+    default: 'border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800',
+    bordered: 'border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800',
+    separated: 'border border-gray-200 dark:border-slate-600 rounded-lg mb-2 bg-white dark:bg-slate-800',
   };
 
   return (
@@ -66,16 +66,16 @@ const Accordion = ({
               className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors duration-200 ${
                 item.disabled
                   ? 'opacity-50 cursor-not-allowed'
-                  : 'hover:bg-gray-50 cursor-pointer'
+                  : 'hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer'
               }`}
             >
               <div className="flex items-center gap-3">
                 {item.icon && <span className="flex-shrink-0">{item.icon}</span>}
-                <span className="font-medium text-gray-900">{item.title}</span>
+                <span className="font-medium text-gray-900 dark:text-slate-100">{item.title}</span>
               </div>
               
               <motion.svg
-                className="w-5 h-5 text-gray-400 flex-shrink-0"
+                className="w-5 h-5 text-gray-400 dark:text-slate-400 flex-shrink-0"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -100,7 +100,7 @@ const Accordion = ({
                   transition={{ duration: 0.3, ease: 'easeInOut' }}
                   className="overflow-hidden"
                 >
-                  <div className="px-4 py-3 border-t border-gray-200 text-gray-600">
+                  <div className="px-4 py-3 border-t border-gray-200 dark:border-slate-600 text-gray-600 dark:text-slate-300">
                     {item.content}
                   </div>
                 </motion.div>

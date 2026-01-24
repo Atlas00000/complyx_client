@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, FormEvent, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { useAuthStore } from '@/stores/authStore';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Form, FormField, Input, Button } from '@/components/ui';

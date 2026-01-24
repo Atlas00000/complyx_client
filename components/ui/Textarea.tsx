@@ -3,7 +3,7 @@
 import { TextareaHTMLAttributes, forwardRef } from 'react';
 import { motion } from 'framer-motion';
 
-export interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
+export interface TextareaProps extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'onDrag' | 'onDragEnd' | 'onDragEnter' | 'onDragExit' | 'onDragLeave' | 'onDragStart' | 'onAnimationStart' | 'onAnimationEnd' | 'onAnimationIteration'> {
   error?: string;
   label?: string;
   helperText?: string;

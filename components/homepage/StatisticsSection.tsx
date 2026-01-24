@@ -51,16 +51,18 @@ const StatisticsSection = ({
   className = '',
 }: StatisticsSectionProps) => {
   return (
-    <section className={`py-20 bg-gradient-to-br from-primary/5 via-accent/5 to-secondary/5 ${className}`}>
+    <section className={`py-20 bg-gradient-to-br from-primary/10 via-accent/5 to-secondary/10 dark:from-primary/20 dark:via-accent/10 dark:to-secondary/15 ${className}`}>
       <Container size="wide">
         {/* Header */}
         {(title || subtitle) && (
           <div className="text-center mb-16">
             {title && (
-              <h2 className="text-h2 text-gray-900 font-bold mb-4">{title}</h2>
+              <h2 className="text-h2 text-gray-900 dark:text-slate-100 font-bold mb-4">
+                {title}
+              </h2>
             )}
             {subtitle && (
-              <p className="text-body-lg text-gray-600 max-w-2xl mx-auto">
+              <p className="text-body-lg text-gray-600 dark:text-slate-300 max-w-2xl mx-auto">
                 {subtitle}
               </p>
             )}
@@ -86,14 +88,16 @@ const StatisticsSection = ({
               transition={{ duration: 0.5, delay: index * 0.1 }}
               className="text-center"
             >
-              <div className="text-4xl lg:text-5xl font-bold text-primary mb-2">
+              <div className="text-4xl lg:text-5xl font-bold text-primary dark:text-primary mb-2">
                 <AnimatedCounter
                   value={stat.value}
                   prefix={stat.prefix}
                   suffix={stat.suffix}
                 />
               </div>
-              <p className="text-body text-gray-600">{stat.label}</p>
+              <p className="text-body text-gray-600 dark:text-slate-300">
+                {stat.label}
+              </p>
             </motion.div>
           ))}
         </Grid>

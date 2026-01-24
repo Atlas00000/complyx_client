@@ -40,3 +40,16 @@ export type { GridProps } from './Grid';
 // Footer
 export { default as Footer } from './Footer';
 export type { FooterProps, FooterLink, FooterSection } from './Footer';
+
+// Page Layout
+export { default as PageBackground } from './PageBackground';
+export { default as PageLayout } from './PageLayout';
+export { default as PageOverlay } from './PageOverlay';
+
+// Mobile Layout Components
+export { default as MobileLayout } from './MobileLayout';
+export { default as MobileHeader } from './MobileHeader';
+export type { MobileHeaderProps } from './MobileHeader';
+export { default as MobileNavigation } from './MobileNavigation';
+export type { MobileNavigationProps, MobileNavItem } from './MobileNavigation';
+export { default as ResponsiveLayout } from './ResponsiveLayout';

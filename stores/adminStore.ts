@@ -3,7 +3,6 @@ import * as adminApi from '../lib/api/adminApi';
 import type {
   AdminStats,
   UserManagementData,
-  UsersResponse,
   SystemAnalytics,
   AuditLogsResponse,
 } from '../lib/api/adminApi';
@@ -33,7 +32,7 @@ interface AdminState {
   clearError: () => void;
 }
 
-export const useAdminStore = create<AdminState>((set, get) => ({
+export const useAdminStore = create<AdminState>((set, _get) => ({
   stats: null,
   users: [],
   usersPagination: null,

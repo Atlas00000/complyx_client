@@ -33,7 +33,7 @@ const FeatureCard = ({
         variant="elevated"
         hover
         onClick={onClick}
-        className="h-full p-6 text-center group cursor-pointer"
+        className="h-full p-6 text-center group cursor-pointer border border-gray-200 dark:border-gray-600 hover:border-primary/30 dark:hover:border-primary/50 transition-all duration-300"
       >
         {/* Icon */}
         <motion.div
@@ -41,18 +41,18 @@ const FeatureCard = ({
           whileHover={{ scale: 1.1, rotate: 5 }}
           transition={{ duration: 0.2 }}
         >
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white shadow-primary-lg">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary via-accent to-secondary flex items-center justify-center text-white shadow-primary-lg dark:shadow-primary">
             {icon}
           </div>
         </motion.div>
 
         {/* Title */}
-        <h3 className="text-h5 text-gray-900 font-semibold mb-3 group-hover:text-primary transition-colors duration-200">
+        <h3 className="text-h5 text-gray-900 dark:text-slate-100 font-semibold mb-3 group-hover:text-primary dark:group-hover:text-primary transition-colors duration-200">
           {title}
         </h3>
 
         {/* Description */}
-        <p className="text-body text-gray-600 leading-relaxed">
+        <p className="text-body text-gray-600 dark:text-slate-300 leading-relaxed">
           {description}
         </p>
       </Card>

@@ -3,7 +3,7 @@
 import { HTMLAttributes, ReactNode } from 'react';
 import { motion } from 'framer-motion';
 
-export interface GridProps extends HTMLAttributes<HTMLDivElement> {
+export interface GridProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onDrag' | 'onDragEnd' | 'onDragEnter' | 'onDragExit' | 'onDragLeave' | 'onDragStart' | 'onAnimationStart' | 'onAnimationEnd' | 'onAnimationIteration'> {
   children: ReactNode;
   cols?: 1 | 2 | 3 | 4 | 6 | 12;
   gap?: 'none' | 'small' | 'medium' | 'large';

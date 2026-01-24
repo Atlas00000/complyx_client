@@ -1,5 +1,13 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
+/**
+ * Get stored access token
+ */
+const getAccessToken = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('accessToken');
+};
+
 export interface CategoryScore {
   category: string;
   score: number;
@@ -144,11 +152,17 @@ export class DashboardAPI {
       ? `${API_URL}/api/dashboard/user/${params.userId}/data?${queryParams.toString()}`
       : `${API_URL}/api/dashboard/data?${queryParams.toString()}`;
 
+    const token = getAccessToken();
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch(url, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       credentials: 'include',
     });
 
@@ -173,11 +187,17 @@ export class DashboardAPI {
       ? `${API_URL}/api/dashboard/user/${params.userId}/score?${queryParams.toString()}`
       : `${API_URL}/api/dashboard/score?${queryParams.toString()}`;
 
+    const token = getAccessToken();
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch(url, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       credentials: 'include',
     });
 
@@ -202,11 +222,17 @@ export class DashboardAPI {
       ? `${API_URL}/api/dashboard/user/${params.userId}/progress?${queryParams.toString()}`
       : `${API_URL}/api/dashboard/progress?${queryParams.toString()}`;
 
+    const token = getAccessToken();
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch(url, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       credentials: 'include',
     });
 
@@ -234,11 +260,17 @@ export class DashboardAPI {
       ? `${API_URL}/api/dashboard/user/${params.userId}/gaps?${queryParams.toString()}`
       : `${API_URL}/api/dashboard/gaps?${queryParams.toString()}`;
 
+    const token = getAccessToken();
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch(url, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       credentials: 'include',
     });
 
@@ -266,11 +298,17 @@ export class DashboardAPI {
       ? `${API_URL}/api/dashboard/user/${params.userId}/compliance?${queryParams.toString()}`
       : `${API_URL}/api/dashboard/compliance?${queryParams.toString()}`;
 
+    const token = getAccessToken();
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch(url, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       credentials: 'include',
     });
 

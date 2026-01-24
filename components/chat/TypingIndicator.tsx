@@ -17,12 +17,12 @@ export default function TypingIndicator({ isTyping }: TypingIndicatorProps) {
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.3 }}
     >
-      <div className="max-w-[80%] px-5 py-4 bg-white rounded-2xl shadow-md border border-gray-200">
+      <div className="max-w-[80%] px-5 py-4 bg-white dark:bg-slate-800 rounded-2xl shadow-md border border-gray-200 dark:border-slate-600">
         <div className="flex items-center gap-1.5">
           {[0, 1, 2].map((index) => (
             <motion.div
               key={index}
-              className="w-2 h-2 bg-gray-400 rounded-full"
+              className="w-2 h-2 bg-gray-400 dark:bg-slate-400 rounded-full"
               animate={{
                 y: [0, -8, 0],
                 opacity: [0.5, 1, 0.5],
@@ -35,7 +35,7 @@ export default function TypingIndicator({ isTyping }: TypingIndicatorProps) {
               }}
             />
           ))}
-          <span className="ml-2 text-xs text-gray-500">Complyx is typing...</span>
+          <span className="ml-2 text-xs text-gray-500 dark:text-slate-400">Complyx is typing...</span>
         </div>
       </div>
     </motion.div>

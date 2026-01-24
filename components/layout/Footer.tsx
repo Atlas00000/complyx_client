@@ -39,7 +39,7 @@ const Footer = ({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
-      className={`bg-white border-t border-gray-200 ${className}`}
+      className={`bg-white dark:bg-slate-800 border-t border-gray-200 dark:border-slate-600 ${className}`}
     >
       <div className="container-wide">
         <div className="py-12 px-4 lg:px-6">
@@ -48,8 +48,10 @@ const Footer = ({
             <div className="space-y-4">
               {logo || (
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900">Complyx</h3>
-                  <p className="text-sm text-gray-600 mt-2">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100">
+                    Complyx
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-slate-300 mt-2">
                     IFRS S1 & S2 Readiness Assessment Assistant
                   </p>
                 </div>
@@ -64,7 +66,7 @@ const Footer = ({
                       href={social.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-2 text-gray-400 hover:text-primary hover:bg-gray-100 rounded-lg transition-all duration-200"
+                      className="p-2 text-gray-400 dark:text-slate-400 hover:text-primary dark:hover:text-primary hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-all duration-200"
                       initial={{ opacity: 0, scale: 0 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ duration: 0.2, delay: index * 0.1 }}
@@ -87,7 +89,9 @@ const Footer = ({
                 transition={{ duration: 0.3, delay: sectionIndex * 0.1 }}
                 className="space-y-4"
               >
-                <h4 className="text-sm font-semibold text-gray-900">{section.title}</h4>
+                <h4 className="text-sm font-semibold text-gray-900 dark:text-slate-100">
+                  {section.title}
+                </h4>
                 <ul className="space-y-2">
                   {section.links.map((link, linkIndex) => (
                     <li key={linkIndex}>
@@ -96,14 +100,14 @@ const Footer = ({
                           href={link.href}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-sm text-gray-600 hover:text-primary transition-colors duration-200"
+                          className="text-sm text-gray-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors duration-200"
                         >
                           {link.label}
                         </a>
                       ) : (
                         <Link
                           href={link.href}
-                          className="text-sm text-gray-600 hover:text-primary transition-colors duration-200"
+                          className="text-sm text-gray-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors duration-200"
                         >
                           {link.label}
                         </Link>
@@ -121,7 +125,7 @@ const Footer = ({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.3, delay: 0.4 }}
-              className="mt-8 pt-8 border-t border-gray-200 text-center text-sm text-gray-500"
+              className="mt-8 pt-8 border-t border-gray-200 dark:border-slate-600 text-center text-sm text-gray-500 dark:text-slate-400"
             >
               {copyright}
             </motion.div>

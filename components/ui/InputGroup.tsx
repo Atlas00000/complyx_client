@@ -3,7 +3,7 @@
 import { HTMLAttributes, ReactNode } from 'react';
 import { motion } from 'framer-motion';
 
-export interface InputGroupProps extends HTMLAttributes<HTMLDivElement> {
+export interface InputGroupProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onDrag' | 'onDragEnd' | 'onDragEnter' | 'onDragExit' | 'onDragLeave' | 'onDragStart' | 'onAnimationStart' | 'onAnimationEnd' | 'onAnimationIteration'> {
   children: ReactNode;
   orientation?: 'horizontal' | 'vertical';
   spacing?: 'none' | 'small' | 'medium' | 'large';

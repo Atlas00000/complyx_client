@@ -1,7 +1,10 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header, Footer } from '@/components/layout';
+import { Button } from '@/components/ui';
+import { initTheme } from '@/lib/utils/theme';
 import {
   HeroSection,
   FeaturesSection,
@@ -12,6 +15,11 @@ import {
 
 export default function Homepage() {
   const router = useRouter();
+
+  // Initialize theme on page load
+  useEffect(() => {
+    initTheme();
+  }, []);
 
   const features = [
     {
@@ -125,24 +133,26 @@ export default function Homepage() {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-slate-900">
       <Header
         title="Complyx"
         subtitle="IFRS S1 & S2 Readiness Assessment"
         rightActions={
           <div className="flex items-center gap-3">
-            <button
+            <Button
+              variant="ghost"
+              size="medium"
               onClick={() => router.push('/')}
-              className="px-4 py-2 text-gray-700 hover:text-gray-900 transition-colors"
             >
               Chat
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="primary"
+              size="medium"
               onClick={() => router.push('/dashboard')}
-              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
             >
               Dashboard
-            </button>
+            </Button>
           </div>
         }
       />

@@ -1,6 +1,6 @@
 'use client';
 
-import { useAssessmentStore, AssessmentScore, AssessmentAnswer } from '@/stores/assessmentStore';
+import { useAssessmentStore } from '@/stores/assessmentStore';
 import { ReportData, ReportOptions } from '@/lib/reports/pdfGenerator';
 
 interface ReportTemplateProps {

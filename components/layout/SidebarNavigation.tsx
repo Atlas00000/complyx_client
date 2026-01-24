@@ -4,7 +4,7 @@ import { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
-import Navigation, { NavItem } from './Navigation';
+import { NavItem } from './Navigation';
 
 export interface SidebarNavItem extends NavItem {
   icon: ReactNode;
