@@ -26,12 +26,25 @@ export function useChatSearch(messages: Message[]) {
       const content = message.content.toLowerCase();
       if (content.includes(query)) {
         // Count number of matches in this message
-        const matches = (content.match(new RegExp(query, 'g')) || []).length;
-        results.push({
-          messageId: message.id,
-          index,
-          matches,
-        });
+        // Escape special regex characters to prevent errors (especially on iOS Safari)
+        try {
+          const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const regex = new RegExp(escapedQuery, 'g');
+          const matches = (content.match(regex) || []).length;
+          results.push({
+            messageId: message.id,
+            index,
+            matches,
+          });
+        } catch (error) {
+          // Fallback: if regex fails, just count 1 match (already confirmed via includes)
+          console.warn('Regex error in search, using fallback:', error);
+          results.push({
+            messageId: message.id,
+            index,
+            matches: 1,
+          });
+        }
       }
     });
 

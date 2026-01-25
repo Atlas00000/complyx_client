@@ -30,8 +30,16 @@ export default function MessageBubbleContent({
     }
 
     // Simple regex replacement for markdown content
-    const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-    return text.replace(regex, (match) => `**${match}**`);
+    // Escape special regex characters to prevent errors (especially on iOS Safari)
+    try {
+      const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`(${escapedQuery})`, 'gi');
+      return text.replace(regex, (match) => `**${match}**`);
+    } catch (error) {
+      // Fallback: if regex fails, return original text
+      console.warn('Regex error in highlight, using fallback:', error);
+      return text;
+    }
   };
 
   // Enhanced markdown components with better styling
