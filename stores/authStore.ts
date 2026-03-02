@@ -125,14 +125,22 @@ export const useAuthStore = create<AuthState>()(
         user: state.user,
         isAuthenticated: state.isAuthenticated,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+        const token = authApi.getAccessToken();
+        if (!token && (state.user || state.isAuthenticated)) {
+          useAuthStore.getState().setUser(null);
+        }
+      },
     }
   )
 );
 
-// Initialize auth state on mount
+// Initialize auth state on mount (sync with tokens happens in onRehydrateStorage)
 if (typeof window !== 'undefined') {
+  const token = authApi.getAccessToken();
   const storedUser = authApi.getStoredUser();
-  if (storedUser && authApi.getAccessToken()) {
+  if (token && storedUser) {
     useAuthStore.getState().setUser(storedUser);
   }
 }

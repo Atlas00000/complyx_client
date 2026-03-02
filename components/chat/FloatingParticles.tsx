@@ -21,15 +21,20 @@ interface Particle {
 }
 
 export default function FloatingParticles({ count = 8 }: { count?: number }) {
+  // Use deterministic values to avoid hydration mismatch (server vs client)
   const particles = useMemo<Particle[]>(() => {
-    return Array.from({ length: count }, (_, i) => ({
-      id: i,
-      size: Math.random() * 4 + 2, // 2-6px
-      x: Math.random() * 100, // 0-100%
-      y: Math.random() * 100, // 0-100%
-      duration: Math.random() * 10 + 15, // 15-25s
-      delay: Math.random() * 5, // 0-5s
-    }));
+    return Array.from({ length: count }, (_, i) => {
+      const seed = (i * 13 + 7) % 100;
+      const seed2 = (i * 17 + 11) % 100;
+      return {
+        id: i,
+        size: (seed % 40) / 10 + 2, // 2-6px
+        x: seed,
+        y: seed2,
+        duration: 15 + (seed % 10),
+        delay: seed2 % 5,
+      };
+    });
   }, [count]);
 
   return (

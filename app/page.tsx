@@ -1,9 +1,12 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useChatStore } from '@/stores/chatStore';
 import { useSessionStore } from '@/stores/sessionStore';
+import { useAuthStore } from '@/stores/authStore';
+import { useInChatAssessment } from '@/hooks/useInChatAssessment';
 import { useChatSearch } from '@/hooks/useChatSearch';
 import { usePageLoading } from '@/hooks/usePageLoading';
 import { Header, ResponsiveLayout, MobileHeader, MobileNavigation } from '@/components/layout';
@@ -20,6 +23,23 @@ import TypingIndicator from '@/components/chat/TypingIndicator';
 import SearchInput from '@/components/chat/SearchInput';
 import SuggestedPrompts from '@/components/chat/SuggestedPrompts';
 import SessionList from '@/components/chat/SessionList';
+import AssessmentSelectionFlow from '@/components/chat/AssessmentSelectionFlow';
+import AssessmentContextHint from '@/components/chat/AssessmentContextHint';
+import AssessmentProgressIndicator from '@/components/chat/AssessmentProgressIndicator';
+import AssessmentQuestionBubble from '@/components/chat/AssessmentQuestionBubble';
+import QuestionCard from '@/components/chat/QuestionCard';
+import InChatAssessmentSkipButton from '@/components/chat/InChatAssessmentSkipButton';
+import AssessmentTypeSwitchConfirm from '@/components/chat/AssessmentTypeSwitchConfirm';
+import { setAssessmentIntent, consumeAssessmentIntent } from '@/lib/assessmentIntent';
+import AuthHeaderButtons from '@/components/auth/AuthHeaderButtons';
+import UserHeaderMenu from '@/components/auth/UserHeaderMenu';
+import InProgressAssessmentBar from '@/components/chat/InProgressAssessmentBar';
+import AssessmentCompletionSummary from '@/components/chat/AssessmentCompletionSummary';
+import CompletionSummarySkeleton from '@/components/chat/CompletionSummarySkeleton';
+import { getInChatAssessmentSummary } from '@/lib/api/inChatAssessmentApi';
+import type { CompletionSummaryResponse } from '@/lib/api/inChatAssessmentApi';
+import { questionToPayload, isRichQuestionType } from '@/lib/utils/assessmentBlock';
+import type { Question } from '@/lib/api/questionApi';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -50,11 +70,31 @@ export default function Home() {
     updateSessionMessageCount,
   } = useSessionStore();
 
+  const user = useAuthStore((s) => s.user);
+  const userId = user?.id ?? null;
+
+  const {
+    step: inChatStep,
+    assessmentId: inChatAssessmentId,
+    startChoosingType,
+    startAssessment,
+    currentQuestion: inChatCurrentQuestion,
+    totalQuestions: inChatTotalQuestions,
+    progress: inChatProgress,
+    totalAnswered: inChatTotalAnswered,
+    submitAnswer: submitInChatAnswer,
+    reset: resetInChat,
+    error: inChatAssessmentError,
+    resumeAssessment: resumeInChatAssessment,
+  } = useInChatAssessment(userId);
+
   const [welcomeSent, setWelcomeSent] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSessionListOpen, setIsSessionListOpen] = useState(false);
   const [regeneratingMessageId, setRegeneratingMessageId] = useState<string | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [showTypeSwitchConfirm, setShowTypeSwitchConfirm] = useState(false);
+  const [completionSummary, setCompletionSummary] = useState<CompletionSummaryResponse | null>(null);
 
   const {
     searchQuery,
@@ -160,6 +200,7 @@ export default function Home() {
           useRAG: true,
           ragTopK: 5,
           ragMinScore: 0.5,
+          ...(userId && { userId }),
         }),
       });
 
@@ -185,7 +226,7 @@ export default function Home() {
     } finally {
       setIsTyping(false);
     }
-  }, [messages, removeMessage, updateMessage, addMessage, setIsTyping]);
+  }, [messages, removeMessage, updateMessage, addMessage, setIsTyping, userId]);
 
   const handleRegenerate = useCallback(async (messageId: string) => {
     const messageIndex = messages.findIndex((m) => m.id === messageId);
@@ -226,6 +267,7 @@ export default function Home() {
           useRAG: true,
           ragTopK: 5,
           ragMinScore: 0.5,
+          ...(userId && { userId }),
         }),
       });
 
@@ -252,7 +294,76 @@ export default function Home() {
       setIsTyping(false);
       setRegeneratingMessageId(null);
     }
-  }, [messages, removeMessage, addMessage, setIsTyping, setRegeneratingMessageId]);
+  }, [messages, removeMessage, addMessage, setIsTyping, setRegeneratingMessageId, userId]);
+
+  const handleInChatAnswer = useCallback(
+    async (value: string) => {
+      if (!inChatCurrentQuestion) return;
+      addMessage({
+        content: inChatCurrentQuestion.text,
+        isUser: false,
+        status: 'sent',
+      });
+      addMessage({
+        content: value,
+        isUser: true,
+        status: 'sent',
+        questionId: inChatCurrentQuestion.id,
+      });
+      await submitInChatAnswer(inChatCurrentQuestion.id, value);
+    },
+    [inChatCurrentQuestion, addMessage, submitInChatAnswer]
+  );
+
+  const handleInChatSkip = useCallback(() => {
+    if (!inChatCurrentQuestion) return;
+    addMessage({
+      content: inChatCurrentQuestion.text,
+      isUser: false,
+      status: 'sent',
+    });
+    addMessage({
+      content: "I don't know",
+      isUser: true,
+      status: 'sent',
+      questionId: inChatCurrentQuestion.id,
+    });
+    submitInChatAnswer(inChatCurrentQuestion.id, "I don't know");
+  }, [inChatCurrentQuestion, addMessage, submitInChatAnswer]);
+
+  const handleStartAnotherAssessment = useCallback(() => {
+    setCompletionSummary(null);
+    resetInChat();
+    startChoosingType();
+  }, [resetInChat, startChoosingType]);
+
+  /** Week 3: Logged-out — set intent and redirect so after login we open assessment flow */
+  const handleLoginForAssessment = useCallback(() => {
+    setAssessmentIntent();
+    window.location.href = '/auth/login?redirect=/';
+  }, []);
+
+  const inChatQuestionForCard = useMemo((): Question | null => {
+    if (!inChatCurrentQuestion) return null;
+    return {
+      id: inChatCurrentQuestion.id,
+      text: inChatCurrentQuestion.text,
+      type: inChatCurrentQuestion.type,
+      options: inChatCurrentQuestion.options,
+      order: inChatCurrentQuestion.order,
+      category: {
+        id: '',
+        name: inChatCurrentQuestion.categoryName,
+        description: null,
+      },
+      ifrsStandard: 'S1',
+      requirement: null,
+      weight: 1,
+      phase: 'quick',
+      isActive: true,
+      skipLogic: null,
+    };
+  }, [inChatCurrentQuestion]);
 
   useEffect(() => {
     if (currentSessionId && messages.length > 0) {
@@ -264,69 +375,126 @@ export default function Home() {
     }
   }, [messages, currentSessionId, updateSessionPreview, updateSessionMessageCount]);
 
+  // Week 3: fetch completion summary when in-chat assessment completes
+  useEffect(() => {
+    if (inChatStep !== 'completed' || !inChatAssessmentId) {
+      setCompletionSummary(null);
+      return;
+    }
+    let cancelled = false;
+    getInChatAssessmentSummary(inChatAssessmentId)
+      .then((data) => {
+        if (!cancelled) setCompletionSummary(data);
+      })
+      .catch(() => {
+        if (!cancelled) setCompletionSummary(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [inChatStep, inChatAssessmentId]);
+
+  // Week 5: resume assessment from URL ?resume=assessmentId
+  const searchParams = useSearchParams();
+  const hasAppliedResumeParamRef = useRef(false);
+  useEffect(() => {
+    const resumeId = searchParams.get('resume');
+    if (!userId || !resumeId || hasAppliedResumeParamRef.current) return;
+    hasAppliedResumeParamRef.current = true;
+    resumeInChatAssessment(resumeId);
+  }, [searchParams, userId, resumeInChatAssessment]);
+
+  // Week 4: after login with redirect=/, open assessment if user came from assessment flow
+  useEffect(() => {
+    if (!userId) return;
+    if (consumeAssessmentIntent()) {
+      startChoosingType();
+    }
+  }, [userId, startChoosingType]);
+
   const handleSelectSession = useCallback((sessionId: string) => {
     setActiveSession(sessionId);
     setCurrentSession(sessionId);
     setWelcomeSent(false);
   }, [setActiveSession, setCurrentSession]);
 
-  const handleSendMessage = useCallback(async (content: string) => {
-    if (!currentSessionId) {
-      const newSessionId = createSession();
-      setCurrentSession(newSessionId);
-      setActiveSession(newSessionId);
-    }
-
-    addMessage({
-      content,
-      isUser: true,
-      status: 'sent',
-    });
-
-    setIsTyping(true);
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: content,
-          messages: messages.map((m) => ({
-            role: m.isUser ? 'user' : 'assistant',
-            content: m.content,
-          })),
-          stream: false,
-          useRAG: true,
-          ragTopK: 5,
-          ragMinScore: 0.5,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        addMessage({
-          content: data.message,
-          isUser: false,
-        });
-      } else {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        addMessage({
-          content: errorData.error || 'Sorry, I encountered an error. Please try again.',
-          isUser: false,
-        });
+  const handleSendMessage = useCallback(
+    async (content: string) => {
+      if (inChatStep === 'in_progress' && inChatCurrentQuestion) {
+        await handleInChatAnswer(content);
+        return;
       }
-    } catch (error) {
-      console.error('Chat error:', error);
+
+      if (!currentSessionId) {
+        const newSessionId = createSession();
+        setCurrentSession(newSessionId);
+        setActiveSession(newSessionId);
+      }
+
       addMessage({
-        content: 'Sorry, I encountered an error. Please try again.',
-        isUser: false,
+        content,
+        isUser: true,
+        status: 'sent',
       });
-    } finally {
-      setIsTyping(false);
-    }
-  }, [currentSessionId, messages, addMessage, setIsTyping, createSession, setCurrentSession, setActiveSession]);
+
+      setIsTyping(true);
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/chat`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: content,
+            messages: messages.map((m) => ({
+              role: m.isUser ? 'user' : 'assistant',
+              content: m.content,
+            })),
+            stream: false,
+            useRAG: true,
+            ragTopK: 5,
+            ragMinScore: 0.5,
+            ...(userId && { userId }),
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          addMessage({
+            content: data.message,
+            isUser: false,
+          });
+        } else {
+          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+          addMessage({
+            content: errorData.error || 'Sorry, I encountered an error. Please try again.',
+            isUser: false,
+          });
+        }
+      } catch (error) {
+        console.error('Chat error:', error);
+        addMessage({
+          content: 'Sorry, I encountered an error. Please try again.',
+          isUser: false,
+        });
+      } finally {
+        setIsTyping(false);
+      }
+    },
+  [
+    currentSessionId,
+    messages,
+    addMessage,
+    setIsTyping,
+    createSession,
+    setCurrentSession,
+    setActiveSession,
+    userId,
+    inChatStep,
+    inChatCurrentQuestion,
+    handleInChatAnswer,
+  ]);
 
   const handleFileUpload = useCallback((file: File) => {
     console.log('File uploaded:', file.name);
@@ -494,21 +662,39 @@ export default function Home() {
             </Button>
           }
           rightActions={
-            <div className="flex items-center gap-1">
-              {messages.length > 0 && (
+            userId ? (
+              <div className="flex items-center gap-1">
                 <Button
                   variant="ghost"
                   size="small"
-                  onClick={handleSearchToggle}
-                  title="Search"
+                  onClick={() =>
+                    inChatStep === 'in_progress' ? setShowTypeSwitchConfirm(true) : startChoosingType()
+                  }
+                  title="Start assessment"
                   className="p-2"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                   </svg>
                 </Button>
-              )}
-            </div>
+                {messages.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="small"
+                    onClick={handleSearchToggle}
+                    title="Search"
+                    className="p-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </Button>
+                )}
+                {user && <UserHeaderMenu user={user} size="small" />}
+              </div>
+            ) : (
+              <AuthHeaderButtons size="small" />
+            )
           }
           onMenuClick={() => setIsSessionListOpen(true)}
         />
@@ -530,50 +716,137 @@ export default function Home() {
             </Button>
           }
           rightActions={
-            <div className="flex items-center gap-3">
-              {messages.length > 0 && (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="medium"
-                    onClick={handleSearchToggle}
-                    title="Search messages (Cmd/Ctrl + K)"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    Search
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="medium"
-                    onClick={handleClearChat}
-                    title="Clear chat history"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    Clear Chat
-                  </Button>
-                </>
-              )}
-              <Button
-                variant="primary"
-                size="medium"
-                onClick={() => window.location.href = '/dashboard'}
-              >
-                Dashboard
-              </Button>
-            </div>
+            userId ? (
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="medium"
+                  onClick={() =>
+                    inChatStep === 'in_progress' ? setShowTypeSwitchConfirm(true) : startChoosingType()
+                  }
+                  title="Start IFRS S1/S2 readiness assessment"
+                >
+                  Start assessment
+                </Button>
+                {messages.length > 0 && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="medium"
+                      onClick={handleSearchToggle}
+                      title="Search messages (Cmd/Ctrl + K)"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                      Search
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="medium"
+                      onClick={handleClearChat}
+                      title="Clear chat history"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      Clear Chat
+                    </Button>
+                  </>
+                )}
+                <Button
+                  variant="primary"
+                  size="medium"
+                  onClick={() => window.location.href = '/dashboard'}
+                >
+                  Dashboard
+                </Button>
+                {user && <UserHeaderMenu user={user} size="medium" />}
+              </div>
+            ) : (
+              <AuthHeaderButtons />
+            )
           }
         />
       )}
 
+      {userId && (
+        <div className="shrink-0 px-4 py-1">
+          <AssessmentContextHint
+            variant={
+              inChatStep === 'completed' || completionSummary != null
+                ? 'completed'
+                : 'default'
+            }
+          />
+        </div>
+      )}
+
+      {/* Assessment type/topic selection (Week 1 main page) */}
+      {(inChatStep === 'choose_type' || inChatStep === 'choose_topic') && (
+        <div className="flex-1 min-h-0 flex flex-col items-center justify-center p-4 bg-white/80 dark:bg-slate-900/80">
+          <div className="w-full max-w-md space-y-4">
+            <p className="text-sm text-gray-600 dark:text-slate-400 text-center">
+              Choose an assessment type to get started.
+            </p>
+            {userId ? (
+              <AssessmentSelectionFlow
+                onStartAssessment={startAssessment}
+                disabled={false}
+              />
+            ) : (
+              <div className="text-sm text-amber-600 dark:text-amber-400 text-center space-y-2">
+                <p>
+                  <a
+                    href="/auth/login?redirect=/"
+                    onClick={() => setAssessmentIntent()}
+                    className="text-primary hover:underline font-medium"
+                  >
+                    Log in
+                  </a>
+                  {' '}to start an assessment.
+                </p>
+                <p>
+                  Don&apos;t have an account?{' '}
+                  <a
+                    href="/auth/register"
+                    className="text-primary hover:underline font-medium"
+                  >
+                    Sign up
+                  </a>
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Chat Interface */}
+      {inChatStep !== 'choose_type' && inChatStep !== 'choose_topic' && (
       <div className={`flex-1 min-h-0 flex flex-col ${isMobile ? 'pb-24' : ''}`}>
-        <ChatInterface 
+        {inChatStep === 'in_progress' && (
+          <div className="w-full max-w-4xl mx-auto px-4 py-2 shrink-0 space-y-2">
+            <AssessmentProgressIndicator
+              currentIndex={inChatTotalAnswered + 1}
+              total={inChatTotalQuestions}
+              label="Question"
+            />
+            <InProgressAssessmentBar
+              currentIndex={inChatTotalAnswered + 1}
+              total={inChatTotalQuestions}
+              onChangeType={() => setShowTypeSwitchConfirm(true)}
+            />
+            {inChatAssessmentError && (
+              <p className="text-sm text-red-500 dark:text-red-400" role="alert">
+                {inChatAssessmentError}
+              </p>
+            )}
+          </div>
+        )}
+        <ChatInterface
           isEmpty={messages.length === 0 && !isTyping}
           showSuggestedPrompts={messages.length <= 1 && !isTyping && !isSearchOpen}
+          aboveInput={null}
           suggestedPrompts={
             messages.length <= 1 ? (
               <SuggestedPrompts
@@ -588,14 +861,22 @@ export default function Home() {
               <MobileChatInput
                 onSend={handleSendMessage}
                 onFileUpload={handleFileUpload}
-                placeholder="Ask me anything about IFRS standards..."
+                placeholder={
+                  inChatStep === 'in_progress' && inChatCurrentQuestion
+                    ? 'Or type your answer here...'
+                    : 'Ask me anything about IFRS standards...'
+                }
                 fixed={!(messages.length <= 1 && !isTyping && !isSearchOpen)}
               />
             ) : (
               <ChatInput
                 onSendMessage={handleSendMessage}
                 onFileUpload={handleFileUpload}
-                placeholder="Ask me anything about IFRS standards, accounting, or compliance..."
+                placeholder={
+                  inChatStep === 'in_progress' && inChatCurrentQuestion
+                    ? 'Or type your answer here...'
+                    : 'Ask me anything about IFRS standards, accounting, or compliance...'
+                }
               />
             )
           }
@@ -632,13 +913,68 @@ export default function Home() {
             );
           })}
           {isTyping && <TypingIndicator isTyping={isTyping} />}
+          {inChatStep === 'in_progress' && inChatCurrentQuestion && (
+            <div className="space-y-2 mt-2">
+              {isRichQuestionType(inChatCurrentQuestion.type) ? (
+                <AssessmentQuestionBubble
+                  payload={questionToPayload(inChatCurrentQuestion)}
+                  onAnswer={handleInChatAnswer}
+                />
+              ) : (
+                inChatQuestionForCard && (
+                  <QuestionCard
+                    question={inChatQuestionForCard}
+                    onAnswer={handleInChatAnswer}
+                  />
+                )
+              )}
+              <InChatAssessmentSkipButton onSkip={handleInChatSkip} label="I don't know" />
+              <button
+                type="button"
+                onClick={() => setShowTypeSwitchConfirm(true)}
+                className="text-sm text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200 underline"
+              >
+                Change assessment type
+              </button>
+            </div>
+          )}
+          {inChatStep === 'completed' && (
+            <div className="mt-4 max-w-2xl">
+              {completionSummary ? (
+                <AssessmentCompletionSummary
+                  summary={completionSummary}
+                  onStartAnother={handleStartAnotherAssessment}
+                  dashboardHref={`/dashboard?assessmentId=${completionSummary.assessmentId}`}
+                />
+              ) : (
+                <CompletionSummarySkeleton
+                  onStartAnother={handleStartAnotherAssessment}
+                />
+              )}
+            </div>
+          )}
         </ChatInterface>
       </div>
+      )}
 
       {/* Mobile Bottom Navigation */}
       {isMobile && (
         <MobileNavigation items={mobileNavItems} />
       )}
+
+      <AssessmentTypeSwitchConfirm
+        isOpen={showTypeSwitchConfirm}
+        onClose={() => setShowTypeSwitchConfirm(false)}
+        onSaveAndSwitch={() => {
+          resetInChat();
+          startChoosingType();
+        }}
+        onRestart={() => {
+          resetInChat();
+          startChoosingType();
+        }}
+        progress={Math.round(inChatProgress)}
+      />
     </ResponsiveLayout>
   );
 }

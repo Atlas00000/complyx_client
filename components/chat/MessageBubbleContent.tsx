@@ -2,27 +2,39 @@
 
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import type { AssessmentQuestionPayload } from '@/types/chat';
+import AssessmentQuestionBubble from './AssessmentQuestionBubble';
 
 interface MessageBubbleContentProps {
   message: string;
   isUser: boolean;
   searchQuery?: string;
+  assessmentPayload?: AssessmentQuestionPayload | null;
+  onAssessmentAnswer?: (value: string) => void;
 }
 
 /**
  * MessageBubbleContent Component
- * 
- * Enhanced markdown rendering with:
- * - Better typography
- * - Improved code block styling
- * - Enhanced table presentation
- * - Search highlighting
+ *
+ * Renders text (markdown) or a rich assessment question block (MC/Yes/No/Scale).
  */
 export default function MessageBubbleContent({
   message,
   isUser,
   searchQuery,
+  assessmentPayload,
+  onAssessmentAnswer,
 }: MessageBubbleContentProps) {
+  if (!isUser && assessmentPayload) {
+    return (
+      <AssessmentQuestionBubble
+        payload={assessmentPayload}
+        onAnswer={onAssessmentAnswer ?? (() => {})}
+        disabled={!onAssessmentAnswer}
+      />
+    );
+  }
+
   // Highlight search query in message text
   const highlightText = (text: string, query?: string) => {
     if (!query || !query.trim()) {

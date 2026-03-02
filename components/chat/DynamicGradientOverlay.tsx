@@ -24,8 +24,10 @@ export default function DynamicGradientOverlay({
 
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = container;
-      const progress = scrollTop / (scrollHeight - clientHeight);
-      setScrollProgress(Math.min(Math.max(progress, 0), 1));
+      const maxScroll = scrollHeight - clientHeight;
+      const progress =
+        maxScroll <= 0 ? 0 : Math.min(Math.max(scrollTop / maxScroll, 0), 1);
+      setScrollProgress(progress);
     };
 
     container.addEventListener('scroll', handleScroll);
@@ -36,9 +38,11 @@ export default function DynamicGradientOverlay({
     };
   }, [scrollContainerRef]);
 
-  // Calculate gradient positions based on scroll
-  const topOpacity = 0.1 - scrollProgress * 0.1;
-  const bottomOpacity = 0.05 + scrollProgress * 0.1;
+  // Calculate gradient positions based on scroll (guard against NaN)
+  const safeProgress = Number.isFinite(scrollProgress) ? scrollProgress : 0;
+  const topOpacity = Math.max(0, Math.min(1, 0.1 - safeProgress * 0.1));
+  const bottomOpacity = Math.max(0, Math.min(1, 0.05 + safeProgress * 0.1));
+  const topPercent = 20 + safeProgress * 60;
 
   return (
     <>
@@ -70,10 +74,10 @@ export default function DynamicGradientOverlay({
       <motion.div
         className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary/30 to-transparent dark:via-primary/40 pointer-events-none z-10"
         style={{
-          top: `${20 + scrollProgress * 60}%`,
+          top: `${topPercent}%`,
         }}
         animate={{
-          top: `${20 + scrollProgress * 60}%`,
+          top: `${topPercent}%`,
           opacity: [0.2, 0.4, 0.2],
         }}
         transition={{

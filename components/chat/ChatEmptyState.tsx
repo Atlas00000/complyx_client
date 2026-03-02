@@ -1,6 +1,12 @@
 'use client';
 
+import { ReactNode } from 'react';
 import { motion } from 'framer-motion';
+
+interface ChatEmptyStateProps {
+  /** Week 2: Primary action (e.g. Start/Resume assessment chip) shown prominently */
+  primaryAction?: ReactNode;
+}
 
 /**
  * ChatEmptyState Component
@@ -9,7 +15,7 @@ import { motion } from 'framer-motion';
  * No clip art or emojis - uses elegant geometric shapes
  * and animations aligned with the Forest Green & Slate theme.
  */
-export default function ChatEmptyState() {
+export default function ChatEmptyState({ primaryAction }: ChatEmptyStateProps = {}) {
   return (
     <motion.div
       className="flex flex-col items-center justify-center h-full min-h-[400px] px-6"
@@ -99,6 +105,11 @@ export default function ChatEmptyState() {
           Ask me anything about IFRS standards, accounting principles, or compliance requirements.
           I'm here to help you navigate the complexities of financial reporting.
         </p>
+        {primaryAction && (
+          <div className="mt-6 flex justify-center">
+            {primaryAction}
+          </div>
+        )}
       </motion.div>
       
       {/* Subtle gradient accent */}

@@ -55,7 +55,25 @@ export const suggestedPrompts: SuggestedPrompt[] = [
     category: 'requirements',
   },
   
-  // Assessment prompts
+  // Assessment prompts (incl. in-chat assessment triggers)
+  {
+    id: 'assessment-start',
+    title: 'Start assessment',
+    prompt: 'I\'d like to start an IFRS S1/S2 readiness assessment.',
+    category: 'assessment',
+  },
+  {
+    id: 'assessment-quick-check',
+    title: 'Quick check',
+    prompt: 'I want to do a quick 5–7 question IFRS readiness check.',
+    category: 'assessment',
+  },
+  {
+    id: 'assessment-full',
+    title: 'Full assessment',
+    prompt: 'I want to take the full IFRS S1/S2 assessment (about 20 questions).',
+    category: 'assessment',
+  },
   {
     id: 'assessment-gaps',
     title: 'Identify Gaps',

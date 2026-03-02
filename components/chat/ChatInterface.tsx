@@ -15,6 +15,8 @@ interface ChatInterfaceProps {
   suggestedPrompts?: ReactNode;
   chatInput?: ReactNode;
   showSuggestedPrompts?: boolean;
+  /** Week 1: Content above input (e.g. Start/Resume assessment chip) */
+  aboveInput?: ReactNode;
 }
 
 export default function ChatInterface({ 
@@ -23,6 +25,7 @@ export default function ChatInterface({
   suggestedPrompts,
   chatInput,
   showSuggestedPrompts = false,
+  aboveInput,
 }: ChatInterfaceProps) {
   const isMobile = useIsMobile();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -97,7 +100,7 @@ export default function ChatInterface({
                   transition={{ duration: 0.6, delay: 0.2 }}
                 >
                   {isEmpty ? (
-                    <ChatEmptyState />
+                    <ChatEmptyState primaryAction={aboveInput} />
                   ) : (
                     <>
                       {children}
@@ -112,6 +115,13 @@ export default function ChatInterface({
             {showSuggestedPrompts && suggestedPrompts && (
               <div className="relative z-10 px-4 sm:px-6 pb-8 md:pb-6">
                 {suggestedPrompts}
+              </div>
+            )}
+            
+            {/* Week 1: Start/Resume chip - above input. z-20 + pointer-events-auto so chip is clickable */}
+            {aboveInput && !isEmpty && (
+              <div className="relative z-20 shrink-0 px-4 sm:px-6 pb-2 flex justify-center min-h-[2.5rem] pointer-events-auto">
+                {aboveInput}
               </div>
             )}
             

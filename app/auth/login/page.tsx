@@ -1,11 +1,16 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { Container } from '@/components/layout';
 import { Card } from '@/components/ui';
 import LoginForm from '@/components/auth/LoginForm';
 
 export default function LoginPage() {
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get('redirect');
+  const showBackToChat = redirect === '/' || redirect === '';
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-accent/5 to-secondary/5 py-12 px-4">
       <Container size="narrow">
@@ -45,6 +50,16 @@ export default function LoginPage() {
               transition={{ duration: 0.5, delay: 0.3 }}
               className="mt-6 text-center space-y-2"
             >
+              {showBackToChat && (
+                <div className="mb-2">
+                  <Link
+                    href="/"
+                    className="text-sm text-gray-600 hover:text-gray-900 dark:text-slate-400 dark:hover:text-slate-100 transition-colors duration-200"
+                  >
+                    ← Back to chat
+                  </Link>
+                </div>
+              )}
               <a
                 href="/auth/forgot-password"
                 className="text-sm text-primary hover:text-primary-dark transition-colors duration-200"
