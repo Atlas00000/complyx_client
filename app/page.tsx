@@ -36,9 +36,14 @@ import UserHeaderMenu from '@/components/auth/UserHeaderMenu';
 import InProgressAssessmentBar from '@/components/chat/InProgressAssessmentBar';
 import AssessmentCompletionSummary from '@/components/chat/AssessmentCompletionSummary';
 import CompletionSummarySkeleton from '@/components/chat/CompletionSummarySkeleton';
+import ChatSkeleton from '@/components/chat/ChatSkeleton';
+import AssessmentQuestionSkeleton from '@/components/chat/AssessmentQuestionSkeleton';
 import { getInChatAssessmentSummary } from '@/lib/api/inChatAssessmentApi';
 import type { CompletionSummaryResponse } from '@/lib/api/inChatAssessmentApi';
+import { saveChatMessage } from '@/lib/api/chatHistoryApi';
+import { useEnsureServerSession, useLoadSessionHistory, isServerSessionId } from '@/hooks/useChatHistorySync';
 import { questionToPayload, isRichQuestionType } from '@/lib/utils/assessmentBlock';
+import { logger } from '@/lib/utils/logger';
 import type { Question } from '@/lib/api/questionApi';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -69,6 +74,9 @@ export default function Home() {
     updateSessionPreview,
     updateSessionMessageCount,
   } = useSessionStore();
+
+  const ensureServerSession = useEnsureServerSession();
+  const loadSessionHistory = useLoadSessionHistory();
 
   const user = useAuthStore((s) => s.user);
   const userId = user?.id ?? null;
@@ -109,35 +117,54 @@ export default function Home() {
     hasResults,
   } = useChatSearch(messages);
 
-  // Initialize session on first load
+  // Initialize session on first load (server session when logged in, local when not)
   useEffect(() => {
-    if (!currentSessionId && !activeSessionId) {
+    if (userId && !currentSessionId && !activeSessionId) {
+      ensureServerSession().then((id) => {
+        if (id) logger.userAction('chat_session_created', { sessionId: id });
+      });
+      return;
+    }
+    if (!userId && !currentSessionId && !activeSessionId) {
       const newSessionId = createSession();
       setCurrentSession(newSessionId);
       setActiveSession(newSessionId);
+      logger.userAction('chat_session_created', { sessionId: newSessionId });
     } else if (activeSessionId && activeSessionId !== currentSessionId) {
       setCurrentSession(activeSessionId);
       setActiveSession(activeSessionId);
     }
-  }, [currentSessionId, activeSessionId, createSession, setCurrentSession, setActiveSession]);
+  }, [userId, currentSessionId, activeSessionId, createSession, setCurrentSession, setActiveSession, ensureServerSession]);
 
-  // Sync session IDs
+  // Sync session IDs and load server history when switching to a server session
   useEffect(() => {
     if (activeSessionId && activeSessionId !== currentSessionId) {
       setCurrentSession(activeSessionId);
     }
   }, [activeSessionId, currentSessionId, setCurrentSession]);
 
+  useEffect(() => {
+    if (userId && activeSessionId && isServerSessionId(activeSessionId)) {
+      loadSessionHistory(activeSessionId);
+    }
+  }, [userId, activeSessionId, loadSessionHistory]);
+
   // Send welcome message on first load
   useEffect(() => {
     if (!welcomeSent && messages.length === 0 && currentSessionId) {
+      const welcomeContent =
+        "Hello! I'm Complyx, your AI assistant for IFRS standards and general accounting knowledge, with particular expertise in IFRS S1 (Sustainability-related Financial Information Disclosures) and IFRS S2 (Climate-related Disclosures). I can help you understand IFRS requirements, answer questions about compliance and accounting standards, and guide you through various aspects of financial reporting. How can I assist you today?";
       setWelcomeSent(true);
       addMessage({
-        content: "Hello! I'm Complyx, your AI assistant for IFRS standards and general accounting knowledge, with particular expertise in IFRS S1 (Sustainability-related Financial Information Disclosures) and IFRS S2 (Climate-related Disclosures). I can help you understand IFRS requirements, answer questions about compliance and accounting standards, and guide you through various aspects of financial reporting. How can I assist you today?",
+        content: welcomeContent,
         isUser: false,
       });
+      if (userId && isServerSessionId(currentSessionId)) {
+        saveChatMessage(currentSessionId, 'assistant', welcomeContent).catch(() => {});
+      }
+      logger.info('chat_welcome_sent', { sessionId: currentSessionId });
     }
-  }, [messages.length, welcomeSent, addMessage, currentSessionId]);
+  }, [messages.length, welcomeSent, addMessage, currentSessionId, userId]);
 
   // Initialize IFRS standard if not set
   useEffect(() => {
@@ -422,19 +449,37 @@ export default function Home() {
     async (content: string) => {
       if (inChatStep === 'in_progress' && inChatCurrentQuestion) {
         await handleInChatAnswer(content);
+        logger.userAction('in_chat_assessment_answer_submitted', {
+          questionId: inChatCurrentQuestion.id,
+          assessmentId: inChatAssessmentId,
+        });
         return;
       }
 
-      if (!currentSessionId) {
+      let effectiveSessionId = currentSessionId;
+      if (userId && !currentSessionId) {
+        effectiveSessionId = (await ensureServerSession()) ?? null;
+      }
+      if (!userId && !currentSessionId) {
         const newSessionId = createSession();
         setCurrentSession(newSessionId);
         setActiveSession(newSessionId);
+        effectiveSessionId = newSessionId;
       }
 
       addMessage({
         content,
         isUser: true,
         status: 'sent',
+      });
+
+      if (userId && effectiveSessionId && isServerSessionId(effectiveSessionId)) {
+        saveChatMessage(effectiveSessionId, 'user', content).catch(() => {});
+      }
+
+      logger.userAction('chat_message_sent', {
+        sessionId: currentSessionId,
+        hasUser: !!userId,
       });
 
       setIsTyping(true);
@@ -465,19 +510,32 @@ export default function Home() {
             content: data.message,
             isUser: false,
           });
+          if (userId && effectiveSessionId && isServerSessionId(effectiveSessionId)) {
+            saveChatMessage(effectiveSessionId, 'assistant', data.message).catch(() => {});
+          }
         } else {
           const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+          logger.error('chat_message_failed', undefined, {
+            status: response.status,
+            error: errorData.error,
+          });
           addMessage({
             content: errorData.error || 'Sorry, I encountered an error. Please try again.',
             isUser: false,
           });
+          if (userId && effectiveSessionId && isServerSessionId(effectiveSessionId)) {
+            saveChatMessage(effectiveSessionId, 'assistant', errorData.error || 'Error').catch(() => {});
+          }
         }
       } catch (error) {
-        console.error('Chat error:', error);
+        logger.error('chat_request_error', error as Error);
         addMessage({
           content: 'Sorry, I encountered an error. Please try again.',
           isUser: false,
         });
+        if (userId && effectiveSessionId && isServerSessionId(effectiveSessionId)) {
+          saveChatMessage(effectiveSessionId, 'assistant', 'Sorry, I encountered an error. Please try again.').catch(() => {});
+        }
       } finally {
         setIsTyping(false);
       }
@@ -491,6 +549,7 @@ export default function Home() {
     setCurrentSession,
     setActiveSession,
     userId,
+    ensureServerSession,
     inChatStep,
     inChatCurrentQuestion,
     handleInChatAnswer,
@@ -797,13 +856,13 @@ export default function Home() {
             ) : (
               <div className="text-sm text-amber-600 dark:text-amber-400 text-center space-y-2">
                 <p>
-                  <a
-                    href="/auth/login?redirect=/"
-                    onClick={() => setAssessmentIntent()}
-                    className="text-primary hover:underline font-medium"
+                  <button
+                    type="button"
+                    onClick={handleLoginForAssessment}
+                    className="text-primary hover:underline font-medium bg-transparent border-none cursor-pointer p-0"
                   >
                     Log in
-                  </a>
+                  </button>
                   {' '}to start an assessment.
                 </p>
                 <p>
@@ -844,7 +903,7 @@ export default function Home() {
           </div>
         )}
         <ChatInterface
-          isEmpty={messages.length === 0 && !isTyping}
+          isEmpty={(messages.length === 0 && !isTyping) && (welcomeSent || !currentSessionId)}
           showSuggestedPrompts={messages.length <= 1 && !isTyping && !isSearchOpen}
           aboveInput={null}
           suggestedPrompts={
@@ -881,6 +940,10 @@ export default function Home() {
             )
           }
         >
+          {currentSessionId && messages.length === 0 && !welcomeSent ? (
+            <ChatSkeleton />
+          ) : (
+          <>
           {messages.map((message, index) => {
             const isHighlighted = currentResult?.messageId === message.id;
             return (
@@ -913,6 +976,11 @@ export default function Home() {
             );
           })}
           {isTyping && <TypingIndicator isTyping={isTyping} />}
+          {inChatStep === 'in_progress' && !inChatCurrentQuestion && inChatTotalQuestions > 0 && (
+            <div className="mt-2">
+              <AssessmentQuestionSkeleton />
+            </div>
+          )}
           {inChatStep === 'in_progress' && inChatCurrentQuestion && (
             <div className="space-y-2 mt-2">
               {isRichQuestionType(inChatCurrentQuestion.type) ? (
@@ -952,6 +1020,8 @@ export default function Home() {
                 />
               )}
             </div>
+          )}
+          </>
           )}
         </ChatInterface>
       </div>

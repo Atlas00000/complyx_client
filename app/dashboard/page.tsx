@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { useAssessmentStore } from '@/stores/assessmentStore';
 import { useAuthStore } from '@/stores/authStore';
 import { usePageLoading } from '@/hooks/usePageLoading';
+import { useDashboardData } from '@/hooks/useDashboardApi';
 import { Header, Container } from '@/components/layout';
 import { Button, EmptyState } from '@/components/ui';
 import LoadingScreen from '@/components/ui/loading/LoadingScreen';
@@ -30,6 +31,26 @@ export default function DashboardPage() {
   const userId = user?.id;
 
   const hasData = assessmentId && answers.length > 0;
+
+  // Single shared fetch when logged in; children use this data when no local store data
+  const { data: dashboardData } = useDashboardData(userId ?? undefined, assessmentId ?? undefined, {
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Prefer local store; fall back to shared dashboard payload so widgets don't refetch
+  const effectiveScores = scores ?? dashboardData?.readinessScore;
+  const hasServerData = !!dashboardData;
+
+  // Map server historical trends to ProgressCharts history shape
+  const progressHistory = useMemo(() => {
+    const list = dashboardData?.historicalTrends?.assessments ?? [];
+    return list.map((a) => ({
+      date: new Date(a.createdAt).toISOString().split('T')[0],
+      progress: a.progress ?? 0,
+      answeredCount: 0,
+    }));
+  }, [dashboardData?.historicalTrends?.assessments]);
   
   // Memoize computed values to prevent unnecessary recalculations
   const mappedAnswers = useMemo(() => 
@@ -72,43 +93,44 @@ export default function DashboardPage() {
               <ReportExport />
             </motion.div>
 
-            {/* Readiness Score */}
+            {/* Readiness Score – uses shared dashboard data when no local scores */}
             <Suspense fallback={<div className="flex items-center justify-center min-h-[300px]"><LoadingSpinner size="medium" /></div>}>
               <ReadinessScore 
-                scores={scores} 
+                scores={effectiveScores} 
                 showBreakdown 
                 userId={userId}
                 assessmentId={assessmentId || undefined}
-                autoFetch={!scores}
+                autoFetch={!effectiveScores}
               />
             </Suspense>
 
             {/* Two Column Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Category Breakdown */}
+              {/* Category Breakdown – uses shared dashboard data when no local scores */}
               <Suspense fallback={<div className="flex items-center justify-center min-h-[300px]"><LoadingSpinner size="medium" /></div>}>
                 <CategoryBreakdown 
-                  scores={scores} 
+                  scores={effectiveScores} 
                   viewMode="bar" 
                   showComparison 
                   userId={userId}
                   assessmentId={assessmentId || undefined}
-                  autoFetch={!scores}
+                  autoFetch={!effectiveScores}
                 />
               </Suspense>
 
-              {/* Progress Charts */}
+              {/* Progress Charts – uses shared dashboard history when available */}
               <Suspense fallback={<div className="flex items-center justify-center min-h-[300px]"><LoadingSpinner size="medium" /></div>}>
                 <ProgressCharts 
+                  history={progressHistory.length > 0 ? progressHistory : undefined}
                   showAreaChart 
                   userId={userId}
                   assessmentId={assessmentId || undefined}
-                  autoFetch={true}
+                  autoFetch={!hasServerData}
                 />
               </Suspense>
             </div>
 
-            {/* Compliance Matrix */}
+            {/* Compliance Matrix – useDashboardApi only when no local data */}
             {(hasData || userId) && ifrsStandard && (
               <Suspense fallback={<div className="flex items-center justify-center min-h-[300px]"><LoadingSpinner size="medium" /></div>}>
                 <ComplianceMatrix
@@ -116,24 +138,27 @@ export default function DashboardPage() {
                   answers={mappedAnswers}
                   userId={userId}
                   assessmentId={assessmentId || undefined}
-                  useDashboardApi={!hasData && !!userId}
+                  useDashboardApi={!hasData && !!userId && !dashboardData?.complianceMatrix}
+                  complianceMatrixFromDashboard={dashboardData?.complianceMatrix}
                 />
               </Suspense>
             )}
 
-            {/* Gap Analysis */}
-            {hasData && ifrsStandard && (
+            {/* Gap Analysis – show when local or server data; use shared payload when available */}
+            {(hasData || hasServerData) && ifrsStandard && (
               <Suspense fallback={<div className="flex items-center justify-center min-h-[300px]"><LoadingSpinner size="medium" /></div>}>
                 <GapAnalysis
+                  gapAnalysis={dashboardData?.gapAnalysis}
                   ifrsStandard={ifrsStandard}
+                  userId={userId}
                   assessmentId={assessmentId || undefined}
-                  autoFetch={true}
+                  autoFetch={!dashboardData?.gapAnalysis}
                 />
               </Suspense>
             )}
 
-            {/* Empty State */}
-            {!hasData && (
+            {/* Empty State – when neither local assessment nor server dashboard data */}
+            {!hasData && !hasServerData && (
               <EmptyState
                 title="No Assessment Data"
                 description="Start an assessment to view your dashboard and compliance status. Get insights into your IFRS S1 & S2 readiness."

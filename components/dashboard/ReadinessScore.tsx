@@ -80,23 +80,24 @@ function ReadinessScoreComponent({
     refetch();
   }, [refetch]);
 
-  // Animate score counter
+  // Animate score counter (guard against NaN)
   useEffect(() => {
     if (!scores) return;
-    
-    const targetScore = scores.overallScore;
+    const raw = scores.overallScore;
+    const targetScore = Number(raw);
+    const safeTarget = Number.isFinite(targetScore) ? Math.max(0, Math.min(100, targetScore)) : 0;
     const duration = 2000;
     const steps = 60;
-    const increment = targetScore / steps;
+    const increment = safeTarget / steps;
     let current = 0;
-    
+
     const timer = setInterval(() => {
       current += increment;
-      if (current >= targetScore) {
-        setAnimatedScore(targetScore);
+      if (current >= safeTarget) {
+        setAnimatedScore(safeTarget);
         clearInterval(timer);
       } else {
-        setAnimatedScore(current);
+        setAnimatedScore(Number.isFinite(current) ? current : safeTarget);
       }
     }, duration / steps);
 
@@ -192,7 +193,8 @@ function ReadinessScoreComponent({
     );
   }
 
-  const overallScore = scores.overallScore;
+  const rawOverall = scores.overallScore;
+  const overallScore = Number.isFinite(Number(rawOverall)) ? Math.max(0, Math.min(100, Number(rawOverall))) : 0;
   const categoryScores = scores.categoryScores || [];
 
   const getScoreColor = (score: number) => {

@@ -89,3 +89,6 @@ export type { PaginationProps } from './Pagination';
 
 // Error Handling
 export { default as ErrorBoundary } from './ErrorBoundary';
+
+// Notifications
+export { ToastProvider, useToast } from './Toast';

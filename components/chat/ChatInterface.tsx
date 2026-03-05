@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, ReactNode } from 'react';
+import { useRef, useEffect, useState, useCallback, ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import AnimatedBackground from './AnimatedBackground';
@@ -30,6 +30,7 @@ export default function ChatInterface({
   const isMobile = useIsMobile();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
   
   // Calculate bottom padding based on mobile and whether messages exist
   const hasMessages = !isEmpty && children;
@@ -41,15 +42,38 @@ export default function ChatInterface({
     ? 'pb-32'
     : '';
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
+    if (!isAutoScrollEnabled) return;
     if (messagesEndRef.current && scrollContainerRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
-  };
+  }, [isAutoScrollEnabled]);
 
+  // Auto-scroll only when user is near the bottom; disable when they scroll up
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const distanceFromBottom = scrollHeight - clientHeight - scrollTop;
+      // If within 120px of bottom, keep auto-scroll enabled; otherwise, pause it
+      setIsAutoScrollEnabled(distanceFromBottom < 120);
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    // Initialize state based on initial position
+    handleScroll();
+
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  // Scroll when content changes and auto-scroll is allowed
   useEffect(() => {
     scrollToBottom();
-  });
+  }, [scrollToBottom, children]);
 
   return (
     <div className="relative flex flex-col h-full w-full overflow-hidden">

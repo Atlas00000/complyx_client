@@ -2,12 +2,37 @@
 
 import { useEffect, useState } from 'react';
 import { ComplianceAPI, ComplianceMatrix as ComplianceMatrixType, RequirementStatus } from '@/lib/api/complianceApi';
-import { DashboardAPI } from '@/lib/api/dashboardApi';
+import { DashboardAPI, ComplianceMatrix as DashboardComplianceMatrix } from '@/lib/api/dashboardApi';
 import Skeleton, { SkeletonText } from '@/components/ui/Loading';
 import ComplianceMatrixContainer from './ComplianceMatrixContainer';
 import ComplianceMatrixHeader from './ComplianceMatrixHeader';
 import CategoryBreakdownCards from './CategoryBreakdownCards';
 import ComplianceMatrixGrid from './ComplianceMatrixGrid';
+
+function dashboardMatrixToCompliance(d: DashboardComplianceMatrix): ComplianceMatrixType {
+  return {
+    ifrsStandard: d.ifrsStandard,
+    overallCompliance: d.overallCompliance,
+    requirementStatuses: d.requirements.map((req) => ({
+      requirementId: req.requirementId,
+      code: req.code,
+      title: req.title,
+      category: req.category as 'governance' | 'strategy' | 'risk' | 'metrics',
+      compliant: req.compliant,
+      score: req.score,
+      answeredQuestions: req.answeredQuestions,
+      totalQuestions: req.totalQuestions,
+      level: (req.level === 'core' ? 'foundational' : req.level) as 'foundational' | 'enhanced' | 'disclosure',
+      mandatory: req.mandatory,
+    })),
+    categoryBreakdown: {
+      governance: d.byCategory.governance,
+      strategy: d.byCategory.strategy,
+      risk: d.byCategory.risk,
+      metrics: d.byCategory.metrics,
+    },
+  };
+}
 
 interface ComplianceMatrixProps {
   ifrsStandard: 'S1' | 'S2';
@@ -16,6 +41,8 @@ interface ComplianceMatrixProps {
   userId?: string;
   assessmentId?: string;
   useDashboardApi?: boolean;
+  /** Pre-fetched matrix from shared dashboard data; skips API call when set */
+  complianceMatrixFromDashboard?: DashboardComplianceMatrix | null;
 }
 
 export function ComplianceMatrix({ 
@@ -25,12 +52,20 @@ export function ComplianceMatrix({
   userId,
   assessmentId,
   useDashboardApi = false,
+  complianceMatrixFromDashboard,
 }: ComplianceMatrixProps) {
   const [matrix, setMatrix] = useState<ComplianceMatrixType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (complianceMatrixFromDashboard) {
+      setMatrix(dashboardMatrixToCompliance(complianceMatrixFromDashboard));
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     const loadMatrix = async () => {
       try {
         setLoading(true);
@@ -38,29 +73,7 @@ export function ComplianceMatrix({
 
         if (useDashboardApi && (userId || assessmentId)) {
           const data = await DashboardAPI.getComplianceMatrix({ userId, assessmentId, ifrsStandard });
-          const convertedMatrix: ComplianceMatrixType = {
-            ifrsStandard: data.ifrsStandard,
-            overallCompliance: data.overallCompliance,
-            requirementStatuses: data.requirements.map((req) => ({
-              requirementId: req.requirementId,
-              code: req.code,
-              title: req.title,
-              category: req.category as 'governance' | 'strategy' | 'risk' | 'metrics',
-              compliant: req.compliant,
-              score: req.score,
-              answeredQuestions: req.answeredQuestions,
-              totalQuestions: req.totalQuestions,
-              level: (req.level === 'core' ? 'foundational' : req.level) as 'foundational' | 'enhanced' | 'disclosure',
-              mandatory: req.mandatory,
-            })),
-            categoryBreakdown: {
-              governance: data.byCategory.governance,
-              strategy: data.byCategory.strategy,
-              risk: data.byCategory.risk,
-              metrics: data.byCategory.metrics,
-            },
-          };
-          setMatrix(convertedMatrix);
+          setMatrix(dashboardMatrixToCompliance(data));
         } else if (answers.length > 0) {
           const data = await ComplianceAPI.getComplianceMatrix(ifrsStandard, answers);
           setMatrix(data);
@@ -75,7 +88,7 @@ export function ComplianceMatrix({
     };
 
     loadMatrix();
-  }, [ifrsStandard, answers, userId, assessmentId, useDashboardApi]);
+  }, [ifrsStandard, answers, userId, assessmentId, useDashboardApi, complianceMatrixFromDashboard]);
 
   if (loading) {
     return (

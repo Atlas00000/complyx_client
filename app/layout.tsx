@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import Script from 'next/script'
 import './globals.css'
 import ErrorBoundary from '@/components/ui/ErrorBoundary'
+import { ToastProvider } from '@/components/ui'
 import ThemeProvider from '@/components/providers/ThemeProvider'
 import QueryProvider from '@/components/providers/QueryProvider'
 import { themeScript } from './theme-script'
@@ -38,7 +39,9 @@ export default function RootLayout({
         <ErrorBoundary>
           <QueryProvider>
             <ThemeProvider>
-              {children}
+              <ToastProvider>
+                {children}
+              </ToastProvider>
             </ThemeProvider>
           </QueryProvider>
         </ErrorBoundary>

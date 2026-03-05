@@ -30,7 +30,7 @@ export default function DynamicGradientOverlay({
       setScrollProgress(progress);
     };
 
-    container.addEventListener('scroll', handleScroll);
+    container.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll(); // Initial calculation
 
     return () => {

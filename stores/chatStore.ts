@@ -28,6 +28,7 @@ interface ChatState {
   ifrsStandard: 'S1' | 'S2' | null;
   setCurrentSession: (sessionId: string | null) => void;
   loadSessionMessages: (sessionId: string | null) => void;
+  setSessionMessagesFromServer: (sessionId: string, messages: Message[]) => void;
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void;
   updateMessage: (id: string, updates: Partial<Message>) => void;
   removeMessage: (id: string) => void;
@@ -67,6 +68,15 @@ export const useChatStore = create<ChatState>()(
         const state = get();
         const messages = state.sessionMessages[sessionId] || [];
         set({ messages });
+      },
+
+      setSessionMessagesFromServer: (sessionId: string, messages: Message[]) => {
+        const state = get();
+        const updatedSessionMessages = { ...state.sessionMessages, [sessionId]: messages };
+        set({
+          sessionMessages: updatedSessionMessages,
+          ...(state.currentSessionId === sessionId && { messages }),
+        });
       },
 
       addMessage: (message) => {

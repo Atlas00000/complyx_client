@@ -80,20 +80,11 @@ export const getAccessToken = (): string | null => {
 };
 
 /**
- * Get stored refresh token
- */
-export const getRefreshToken = (): string | null => {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('refreshToken');
-};
-
-/**
  * Store tokens
  */
-export const storeTokens = (accessToken: string, refreshToken: string): void => {
+export const storeTokens = (accessToken: string, _refreshToken?: string): void => {
   if (typeof window === 'undefined') return;
   localStorage.setItem('accessToken', accessToken);
-  localStorage.setItem('refreshToken', refreshToken);
 };
 
 /**
@@ -102,7 +93,6 @@ export const storeTokens = (accessToken: string, refreshToken: string): void => 
 export const clearTokens = (): void => {
   if (typeof window === 'undefined') return;
   localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
   localStorage.removeItem('user');
 };
 
@@ -141,7 +131,7 @@ export const register = async (data: RegisterRequest): Promise<{ message: string
   });
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({ error: 'Registration failed' }));
     throw new Error(error.error || 'Registration failed');
   }
 
@@ -161,7 +151,7 @@ export const login = async (data: LoginRequest): Promise<LoginResponse> => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({ error: 'Login failed' }));
     throw new Error(error.error || 'Login failed');
   }
 
@@ -191,6 +181,7 @@ export const logout = async (sessionId?: string): Promise<void> => {
         body: JSON.stringify({ sessionId }),
       });
     } catch (error) {
+      // Swallow network errors during logout, but log them for observability
       console.error('Logout error:', error);
     }
   }
@@ -293,18 +284,11 @@ export const resetPassword = async (data: ResetPasswordRequest): Promise<{ messa
  * Refresh access token
  */
 export const refreshToken = async (): Promise<{ tokens: { accessToken: string; refreshToken: string } }> => {
-  const refreshTokenValue = getRefreshToken();
-  
-  if (!refreshTokenValue) {
-    throw new Error('No refresh token available');
-  }
-
   const response = await fetch(`${API_URL}/api/auth/refresh-token`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ refreshToken: refreshTokenValue }),
   });
 
   if (!response.ok) {

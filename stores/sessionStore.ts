@@ -14,6 +14,8 @@ interface SessionState {
   sessions: ChatSession[];
   activeSessionId: string | null;
   createSession: (name?: string) => string;
+  addServerSession: (session: { id: string; name?: string; createdAt: Date; updatedAt: Date; lastMessageAt?: Date | null }) => void;
+  setSessionsFromServer: (sessions: Array<{ id: string; name?: string; createdAt: string; updatedAt: string; lastMessageAt?: string | null }>) => void;
   deleteSession: (sessionId: string) => void;
   renameSession: (sessionId: string, newName: string) => void;
   setActiveSession: (sessionId: string) => void;
@@ -47,6 +49,38 @@ export const useSessionStore = create<SessionState>()(
         }));
 
         return sessionId;
+      },
+
+      addServerSession: (session) => {
+        const name = session.name ?? `Chat ${new Date(session.createdAt).toLocaleDateString()}`;
+        const newSession: ChatSession = {
+          id: session.id,
+          name,
+          createdAt: session.createdAt,
+          updatedAt: session.updatedAt,
+          messageCount: 0,
+        };
+        set((state) => {
+          if (state.sessions.some((s) => s.id === session.id)) return state;
+          return {
+            sessions: [newSession, ...state.sessions],
+            activeSessionId: session.id,
+          };
+        });
+      },
+
+      setSessionsFromServer: (sessions) => {
+        const mapped: ChatSession[] = sessions.map((s) => ({
+          id: s.id,
+          name: s.name ?? `Chat ${new Date(s.createdAt).toLocaleDateString()}`,
+          createdAt: new Date(s.createdAt),
+          updatedAt: new Date(s.updatedAt),
+          messageCount: 0,
+        }));
+        set((state) => ({
+          sessions: mapped.length > 0 ? mapped : state.sessions,
+          activeSessionId: mapped.length > 0 ? mapped[0].id : state.activeSessionId,
+        }));
       },
 
       deleteSession: (sessionId: string) => {

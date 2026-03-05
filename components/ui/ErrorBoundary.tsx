@@ -2,6 +2,8 @@
 
 import { Component, ReactNode, ErrorInfo } from 'react';
 import { ErrorState } from '@/components/ui';
+import { logger } from '@/lib/utils/logger';
+import { reportClientError } from '@/lib/api/telemetryApi';
 
 interface Props {
   children: ReactNode;
@@ -31,7 +33,14 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    logger.error('ErrorBoundary caught an error', error, {
+      componentStack: errorInfo.componentStack,
+      source: 'ErrorBoundary',
+    });
+    reportClientError(error.message, {
+      stack: error.stack ?? errorInfo.componentStack ?? undefined,
+      code: 'ERROR_BOUNDARY',
+    });
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
     }

@@ -5,25 +5,62 @@
 import { logger } from './logger';
 
 export interface ErrorInfo {
-  type: 'auth' | 'rateLimit' | 'network' | 'server' | 'unknown';
+  type: 'auth' | 'forbidden' | 'rateLimit' | 'network' | 'server' | 'unknown';
   message: string;
   userMessage: string;
   canRetry: boolean;
   retryAfter?: number; // seconds
 }
 
+/** Error shape with optional code (e.g. from ApiError or dashboard API) */
+function getErrorCode(error: unknown): string | undefined {
+  if (error && typeof error === 'object' && 'code' in error && typeof (error as { code: unknown }).code === 'string') {
+    return (error as { code: string }).code;
+  }
+  return undefined;
+}
+
 /**
  * Parse error and extract error information
+ * Recognizes dashboard API codes: DASHBOARD_UNAUTHORIZED, DASHBOARD_FORBIDDEN, DASHBOARD_ERROR
  */
 export function parseError(error: unknown): ErrorInfo {
   const errorMessage = error instanceof Error ? error.message : String(error);
   const lowerMessage = errorMessage.toLowerCase();
+  const code = getErrorCode(error);
 
   // Log error for debugging
   logger.error('Error occurred', error instanceof Error ? error : new Error(errorMessage), {
     errorMessage,
     errorType: error instanceof Error ? error.constructor.name : typeof error,
+    code,
   });
+
+  // Dashboard and API error codes take precedence
+  if (code === 'DASHBOARD_UNAUTHORIZED') {
+    return {
+      type: 'auth',
+      message: errorMessage,
+      userMessage: 'Please sign in to view the dashboard.',
+      canRetry: false,
+    };
+  }
+  if (code === 'DASHBOARD_FORBIDDEN') {
+    return {
+      type: 'forbidden',
+      message: errorMessage,
+      userMessage: "You don't have access to this dashboard.",
+      canRetry: false,
+    };
+  }
+  if (code === 'DASHBOARD_ERROR') {
+    return {
+      type: 'server',
+      message: errorMessage,
+      userMessage: 'Dashboard is temporarily unavailable. Please try again.',
+      canRetry: true,
+    };
+  }
 
   // Check for 401 Unauthorized
   if (lowerMessage.includes('401') || lowerMessage.includes('unauthorized')) {

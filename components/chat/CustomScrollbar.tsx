@@ -41,6 +41,7 @@ export default function CustomScrollbar({
       style={{
         scrollBehavior: 'smooth',
         WebkitOverflowScrolling: 'touch',
+        overscrollBehavior: 'contain',
       }}
     >
       {children}

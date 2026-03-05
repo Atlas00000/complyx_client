@@ -8,6 +8,21 @@ const getAccessToken = (): string | null => {
   return localStorage.getItem('accessToken');
 };
 
+/** Throw error with server code so parseError can map to user messages. */
+async function throwDashboardError(response: Response, context: string): Promise<never> {
+  let body: { error?: string; code?: string } = {};
+  try {
+    const text = await response.text();
+    if (text) body = JSON.parse(text);
+  } catch {
+    // ignore
+  }
+  const message = body?.error || response.statusText || 'Request failed';
+  const err = new Error(`${context}: ${message}`) as Error & { code?: string };
+  err.code = body?.code;
+  throw err;
+}
+
 export interface CategoryScore {
   category: string;
   score: number;
@@ -55,31 +70,34 @@ export interface ComplianceMatrix {
   };
 }
 
+/** Single gap item; aligns with server ComplianceGap. */
+export interface GapItem {
+  requirementId: string;
+  code: string;
+  title: string;
+  category: string;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  score: number;
+  gap: number;
+  answeredQuestions: number;
+  totalQuestions: number;
+  missingAnswers: string[];
+  recommendations: string[];
+  mandatory: boolean;
+}
+
 export interface GapAnalysis {
   ifrsStandard: 'S1' | 'S2';
   overallGap: number;
-  criticalGaps: Array<{
-    requirementId: string;
-    code: string;
-    title: string;
-    category: string;
-    severity: 'critical' | 'high' | 'medium' | 'low';
-    score: number;
-    gap: number;
-    answeredQuestions: number;
-    totalQuestions: number;
-    missingAnswers: string[];
-    recommendations: string[];
-    mandatory: boolean;
-  }>;
-  highGaps: Array<any>;
-  mediumGaps: Array<any>;
-  lowGaps: Array<any>;
+  criticalGaps: GapItem[];
+  highGaps: GapItem[];
+  mediumGaps: GapItem[];
+  lowGaps: GapItem[];
   byCategory: {
-    governance: Array<any>;
-    strategy: Array<any>;
-    risk: Array<any>;
-    metrics: Array<any>;
+    governance: GapItem[];
+    strategy: GapItem[];
+    risk: GapItem[];
+    metrics: GapItem[];
   };
   priorityActions: string[];
 }
@@ -167,7 +185,7 @@ export class DashboardAPI {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to get dashboard data: ${response.statusText}`);
+      await throwDashboardError(response, 'Failed to get dashboard data');
     }
 
     const data = await response.json();
@@ -202,7 +220,7 @@ export class DashboardAPI {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to get readiness score: ${response.statusText}`);
+      await throwDashboardError(response, 'Failed to get readiness score');
     }
 
     const data = await response.json();
@@ -237,7 +255,7 @@ export class DashboardAPI {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to get progress: ${response.statusText}`);
+      await throwDashboardError(response, 'Failed to get progress');
     }
 
     const data = await response.json();
@@ -275,7 +293,7 @@ export class DashboardAPI {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to get gap analysis: ${response.statusText}`);
+      await throwDashboardError(response, 'Failed to get gap analysis');
     }
 
     const data = await response.json();
@@ -313,7 +331,7 @@ export class DashboardAPI {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to get compliance matrix: ${response.statusText}`);
+      await throwDashboardError(response, 'Failed to get compliance matrix');
     }
 
     const data = await response.json();

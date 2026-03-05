@@ -24,12 +24,53 @@ export interface LogEntry {
   userId?: string;
 }
 
+const REMOTE_LOG_FLUSH_INTERVAL_MS = 30000;
+const REMOTE_LOG_BUFFER_MAX = 20;
+const REMOTE_INFO_SAMPLE_RATE = 0.1;
+const MAX_MESSAGE_LENGTH_REMOTE = 2000;
+const MAX_CONTEXT_STRING_LENGTH = 500;
+
+const SENSITIVE_KEYS = new Set([
+  'password', 'token', 'accessToken', 'refreshToken', 'authorization', 'cookie',
+  'secret', 'apiKey', 'apikey', 'auth', 'credential', 'credentials',
+]);
+
+function sanitizeForRemote(value: unknown): unknown {
+  if (value === null || value === undefined) return value;
+  if (typeof value === 'string') return value.slice(0, MAX_CONTEXT_STRING_LENGTH);
+  if (typeof value === 'number' || typeof value === 'boolean') return value;
+  if (Array.isArray(value)) return value.slice(0, 20).map(sanitizeForRemote);
+  if (typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value)) {
+      const lower = k.toLowerCase();
+      if (SENSITIVE_KEYS.has(lower) || lower.includes('password') || lower.includes('token')) continue;
+      out[k] = sanitizeForRemote(v);
+    }
+    return out;
+  }
+  return value;
+}
+
+function sanitizeContext(ctx: LogContext | undefined): LogContext | undefined {
+  if (!ctx || typeof ctx !== 'object') return ctx;
+  const out: LogContext = {};
+  for (const [k, v] of Object.entries(ctx)) {
+    const lower = k.toLowerCase();
+    if (SENSITIVE_KEYS.has(lower) || lower.includes('password') || lower.includes('token')) continue;
+    out[k] = sanitizeForRemote(v);
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
 class Logger {
   private isDevelopment: boolean;
   private isProduction: boolean;
   private logLevel: LogLevel;
   private enableRemoteLogging: boolean;
   private remoteLogEndpoint?: string;
+  private remoteLogBuffer: Array<{ level: string; message: string; timestamp: string; context?: LogContext }> = [];
+  private remoteFlushTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
     this.isDevelopment = process.env.NODE_ENV === 'development';
@@ -37,6 +78,55 @@ class Logger {
     this.logLevel = (process.env.NEXT_PUBLIC_LOG_LEVEL as LogLevel) || 'info';
     this.enableRemoteLogging = process.env.NEXT_PUBLIC_ENABLE_REMOTE_LOGGING === 'true';
     this.remoteLogEndpoint = process.env.NEXT_PUBLIC_LOG_ENDPOINT;
+    this.initRemoteTransport();
+  }
+
+  private getTelemetryLogUrl(): string {
+    const base = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? `${window.location.origin.replace(/:\d+$/, '')}:3001` : 'http://localhost:3001');
+    return `${base}/api/telemetry/log`;
+  }
+
+  private initRemoteTransport(): void {
+    if (typeof window === 'undefined' || !this.enableRemoteLogging) return;
+    this.remoteFlushTimer = setInterval(() => this.flushRemoteBuffer(), REMOTE_LOG_FLUSH_INTERVAL_MS);
+    const flushAndClear = () => {
+      if (this.remoteFlushTimer !== null) {
+        clearInterval(this.remoteFlushTimer);
+        this.remoteFlushTimer = null;
+      }
+      this.flushRemoteBuffer();
+    };
+    window.addEventListener('beforeunload', flushAndClear);
+    window.addEventListener('pagehide', flushAndClear);
+  }
+
+  private flushRemoteBuffer(): void {
+    if (this.remoteLogBuffer.length === 0) return;
+    const entries = [...this.remoteLogBuffer];
+    this.remoteLogBuffer = [];
+    const url = this.remoteLogEndpoint || this.getTelemetryLogUrl();
+    const body = JSON.stringify({ entries });
+    if (navigator.sendBeacon) {
+      const blob = new Blob([body], { type: 'application/json' });
+      navigator.sendBeacon(url, blob);
+    } else {
+      fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, keepalive: true }).catch(() => {});
+    }
+  }
+
+  private pushToRemoteBuffer(level: LogLevel, message: string, context?: LogContext): void {
+    if (!this.enableRemoteLogging) return;
+    if (this.isProduction && (level === 'info' || level === 'debug') && Math.random() >= REMOTE_INFO_SAMPLE_RATE) return;
+    const browserContext = this.getBrowserContext();
+    const safeContext = sanitizeContext({ ...browserContext, ...context });
+    const safeMessage = typeof message === 'string' ? message.slice(0, MAX_MESSAGE_LENGTH_REMOTE) : String(message).slice(0, MAX_MESSAGE_LENGTH_REMOTE);
+    this.remoteLogBuffer.push({
+      level,
+      message: safeMessage,
+      timestamp: new Date().toISOString(),
+      context: safeContext,
+    });
+    if (this.remoteLogBuffer.length >= REMOTE_LOG_BUFFER_MAX) this.flushRemoteBuffer();
   }
 
   /**
@@ -52,12 +142,32 @@ class Logger {
   /**
    * Get browser context
    */
-  private getBrowserContext(): { userAgent?: string; url?: string } {
+  private getBrowserContext(): {
+    userAgent?: string;
+    url?: string;
+    isMobile?: boolean;
+    viewportWidth?: number;
+    viewportHeight?: number;
+    connectionType?: string;
+  } {
     if (typeof window === 'undefined') return {};
-    
+
+    const isMobile =
+      typeof window.matchMedia === 'function'
+        ? window.matchMedia('(max-width: 768px)').matches
+        : false;
+
+    const nav = navigator as Navigator & {
+      connection?: { effectiveType?: string } | undefined;
+    };
+
     return {
       userAgent: navigator.userAgent,
       url: window.location.href,
+      isMobile,
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
+      connectionType: nav.connection?.effectiveType,
     };
   }
 
@@ -108,34 +218,6 @@ class Logger {
   }
 
   /**
-   * Send log to remote endpoint (if enabled)
-   */
-  private async sendRemoteLog(entry: LogEntry): Promise<void> {
-    if (!this.enableRemoteLogging || !this.remoteLogEndpoint) {
-      return;
-    }
-
-    try {
-      // Use sendBeacon for better reliability (doesn't block page unload)
-      if (navigator.sendBeacon) {
-        const blob = new Blob([JSON.stringify(entry)], { type: 'application/json' });
-        navigator.sendBeacon(this.remoteLogEndpoint, blob);
-      } else {
-        // Fallback to fetch
-        await fetch(this.remoteLogEndpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(entry),
-          keepalive: true,
-        });
-      }
-    } catch (error) {
-      // Silently fail remote logging to avoid breaking the app
-      console.warn('Failed to send remote log:', error);
-    }
-  }
-
-  /**
    * Core log method
    */
   private log(
@@ -165,11 +247,12 @@ class Logger {
       console[consoleMethod](this.formatConsoleMessage(entry));
     }
 
-    // Remote logging (async, non-blocking)
+    // Remote transport: buffer then flush on error/warn immediately, or on interval/page unload
     if (this.enableRemoteLogging) {
-      this.sendRemoteLog(entry).catch(() => {
-        // Silently fail
-      });
+      this.pushToRemoteBuffer(level, message, context);
+      if (level === 'error' || level === 'warn') {
+        this.flushRemoteBuffer();
+      }
     }
   }
 
