@@ -89,7 +89,7 @@ export default function ChatInterface({
           {/* Glassmorphism Container */}
           <motion.div
             className="relative flex-1 min-h-0 rounded-3xl overflow-hidden flex flex-col"
-            initial={{ opacity: 0, scale: 0.98 }}
+            initial={false}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
             style={{
@@ -119,7 +119,7 @@ export default function ChatInterface({
                 {/* Content */}
                 <motion.div
                   className="relative z-10 flex flex-col space-y-6 min-h-full"
-                  initial={{ opacity: 0 }}
+                  initial={false}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.6, delay: 0.2 }}
                 >

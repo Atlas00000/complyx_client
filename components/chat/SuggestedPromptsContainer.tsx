@@ -23,7 +23,7 @@ export default function SuggestedPromptsContainer({
   return (
     <motion.div
       className="relative w-full"
-      initial={{ opacity: 0, y: 20 }}
+      initial={false}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
     >
@@ -65,7 +65,7 @@ export default function SuggestedPromptsContainer({
           {/* Header */}
           <motion.div
             className="mb-4"
-            initial={{ opacity: 0, y: -10 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.2 }}
           >

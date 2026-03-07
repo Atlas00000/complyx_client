@@ -65,7 +65,7 @@ const MobileChatInput = ({
   return (
     <motion.div
       className={`mobile-chat-input ${fixed ? 'fixed' : 'relative'} bottom-0 left-0 right-0 z-40 ${className}`}
-      initial={{ y: fixed ? 100 : 20, opacity: 0 }}
+      initial={false}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
       style={fixed ? {

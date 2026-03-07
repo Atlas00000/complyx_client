@@ -31,7 +31,7 @@ const MobileNavigation = ({ items, className = '' }: MobileNavigationProps) => {
 
   return (
     <motion.nav
-      initial={{ y: 100, opacity: 0 }}
+      initial={false}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
       className={`fixed bottom-0 left-0 right-0 z-50 ${className}`}

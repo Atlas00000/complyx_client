@@ -29,7 +29,7 @@ export default function MobileLayout({ children, className = '' }: MobileLayoutP
   return (
     <motion.div
       className={`mobile-layout relative flex flex-col h-screen overflow-hidden ${className}`}
-      initial={{ opacity: 0 }}
+      initial={false}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
       style={{

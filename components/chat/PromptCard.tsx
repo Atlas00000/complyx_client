@@ -59,7 +59,7 @@ export default function PromptCard({ prompt, onClick, index }: PromptCardProps) 
     <motion.button
       onClick={onClick}
       className="relative group text-left"
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      initial={false}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{
         duration: 0.4,

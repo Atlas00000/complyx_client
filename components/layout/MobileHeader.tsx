@@ -46,7 +46,7 @@ const MobileHeader = ({
 
   return (
     <motion.header
-      initial={{ y: -20, opacity: 0 }}
+      initial={false}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
       className={`relative sticky top-0 z-sticky ${className}`}
