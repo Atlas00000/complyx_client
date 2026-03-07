@@ -9,6 +9,8 @@ import { useAuthStore } from '@/stores/authStore';
 import { useInChatAssessment } from '@/hooks/useInChatAssessment';
 import { useChatSearch } from '@/hooks/useChatSearch';
 import { usePageLoading } from '@/hooks/usePageLoading';
+import { useIsMobile } from '@/hooks/useMediaQuery';
+import MobileChatDebugView from '@/components/chat/MobileChatDebugView';
 import { Header, ResponsiveLayout } from '@/components/layout';
 import PageBackground from '@/components/layout/PageBackground';
 import PageOverlay from '@/components/layout/PageOverlay';
@@ -47,9 +49,9 @@ import type { Question } from '@/lib/api/questionApi';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 export default function Home() {
-  // Page loading state - show for at least 1 second to ensure visibility
+  const isMobile = useIsMobile();
   const isPageLoading = usePageLoading({ minLoadingTime: 1000 });
-  
+
   const {
     messages,
     isTyping,
@@ -618,7 +620,10 @@ export default function Home() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isSearchOpen, hasResults, searchQuery, goToNextMatch, goToPreviousMatch, resetSearch]);
 
-  // Show loading screen during initial page load
+  if (isMobile) {
+    return <MobileChatDebugView />;
+  }
+
   if (isPageLoading) {
     return <LoadingScreen text="Loading Complyx..." />;
   }
