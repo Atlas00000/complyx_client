@@ -6,6 +6,7 @@ import { getEffectiveTheme, setTheme } from '@/lib/utils/theme';
 interface MobileChatHeaderProps {
   title?: string;
   onHistoryClick?: () => void;
+  onSearchClick?: () => void;
   onMoreClick?: () => void;
 }
 
@@ -18,6 +19,7 @@ interface MobileChatHeaderProps {
 export default function MobileChatHeader({
   title = 'Complyx',
   onHistoryClick,
+  onSearchClick,
   onMoreClick,
 }: MobileChatHeaderProps) {
   const [isDark, setIsDark] = useState(false);
@@ -44,7 +46,7 @@ export default function MobileChatHeader({
           <button
             type="button"
             onClick={onHistoryClick}
-            className="p-2 rounded-lg text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-primary"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             title="Chat history"
             aria-label="Chat history"
           >
@@ -53,10 +55,23 @@ export default function MobileChatHeader({
             </svg>
           </button>
         )}
+        {onSearchClick && (
+          <button
+            type="button"
+            onClick={onSearchClick}
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            title="Search messages"
+            aria-label="Search messages"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </button>
+        )}
         <button
           type="button"
           onClick={handleThemeToggle}
-          className="p-2 rounded-lg text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-primary"
+          className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           title={isDark ? 'Switch to light' : 'Switch to dark'}
           aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
         >
@@ -74,7 +89,7 @@ export default function MobileChatHeader({
           <button
             type="button"
             onClick={onMoreClick}
-            className="p-2 rounded-lg text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-primary"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             title="More"
             aria-label="More options"
           >

@@ -11,6 +11,8 @@ import { useChatSearch } from '@/hooks/useChatSearch';
 import { usePageLoading } from '@/hooks/usePageLoading';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import MobileChatDebugView from '@/components/chat/MobileChatDebugView';
+import MobileSessionListDrawer from '@/components/chat/MobileSessionListDrawer';
+import MobileSearchOverlay from '@/components/chat/MobileSearchOverlay';
 import { Header, ResponsiveLayout } from '@/components/layout';
 import PageBackground from '@/components/layout/PageBackground';
 import PageOverlay from '@/components/layout/PageOverlay';
@@ -101,6 +103,7 @@ export default function Home() {
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [showTypeSwitchConfirm, setShowTypeSwitchConfirm] = useState(false);
   const [completionSummary, setCompletionSummary] = useState<CompletionSummaryResponse | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
 
   const {
     searchQuery,
@@ -503,6 +506,7 @@ export default function Home() {
         });
 
         if (response.ok) {
+          setSendError(null);
           const data = await response.json();
           addMessage({
             content: data.message,
@@ -517,8 +521,10 @@ export default function Home() {
             status: response.status,
             error: errorData.error,
           });
+          const errMsg = errorData.error || 'Sorry, I encountered an error. Please try again.';
+          setSendError(errMsg);
           addMessage({
-            content: errorData.error || 'Sorry, I encountered an error. Please try again.',
+            content: errMsg,
             isUser: false,
           });
           if (userId && effectiveSessionId && isServerSessionId(effectiveSessionId)) {
@@ -527,8 +533,10 @@ export default function Home() {
         }
       } catch (error) {
         logger.error('chat_request_error', error as Error);
+        const errMsg = 'Sorry, I encountered an error. Please try again.';
+        setSendError(errMsg);
         addMessage({
-          content: 'Sorry, I encountered an error. Please try again.',
+          content: errMsg,
           isUser: false,
         });
         if (userId && effectiveSessionId && isServerSessionId(effectiveSessionId)) {
@@ -543,6 +551,7 @@ export default function Home() {
     messages,
     addMessage,
     setIsTyping,
+    setSendError,
     createSession,
     setCurrentSession,
     setActiveSession,
@@ -563,6 +572,12 @@ export default function Home() {
       setWelcomeSent(false);
       resetSearch();
     }
+  }, [clearMessages, resetSearch]);
+
+  const handleClearChatConfirm = useCallback(() => {
+    clearMessages();
+    setWelcomeSent(false);
+    resetSearch();
   }, [clearMessages, resetSearch]);
 
   const handleSearch = useCallback((query: string) => {
@@ -621,7 +636,64 @@ export default function Home() {
   }, [isSearchOpen, hasResults, searchQuery, goToNextMatch, goToPreviousMatch, resetSearch]);
 
   if (isMobile) {
-    return <MobileChatDebugView />;
+    return (
+      <>
+        <MobileChatDebugView
+          onSendMessage={handleSendMessage}
+          onSelectPrompt={handleSendMessage}
+          placeholder="Ask me anything about IFRS standards, accounting, or compliance..."
+          onHistoryClick={() => setIsSessionListOpen(true)}
+          onSearchClick={messages.length > 0 ? () => setIsSearchOpen(true) : undefined}
+          assessmentChipLabel={userId ? 'Start assessment' : undefined}
+          onAssessmentClick={userId ? startChoosingType : undefined}
+          inChatStep={inChatStep}
+          userId={userId}
+          onStartAssessment={startAssessment}
+          inChatCurrentQuestion={inChatCurrentQuestion}
+          inChatTotalQuestions={inChatTotalQuestions}
+          inChatTotalAnswered={inChatTotalAnswered}
+          inChatAssessmentError={inChatAssessmentError}
+          onInChatAnswer={handleInChatAnswer}
+          onInChatSkip={handleInChatSkip}
+          onShowTypeSwitchConfirm={() => setShowTypeSwitchConfirm(true)}
+          showTypeSwitchConfirm={showTypeSwitchConfirm}
+          onCloseTypeSwitchConfirm={() => setShowTypeSwitchConfirm(false)}
+          onSaveAndSwitchType={() => {
+            resetInChat();
+            startChoosingType();
+          }}
+          onRestartAssessment={() => {
+            resetInChat();
+            startChoosingType();
+          }}
+          inChatProgress={inChatProgress}
+          completionSummary={completionSummary}
+          onStartAnotherAssessment={handleStartAnotherAssessment}
+          completionDashboardHref={
+            completionSummary
+              ? `/dashboard?assessmentId=${completionSummary.assessmentId}`
+              : undefined
+          }
+          isInitialLoading={
+            !!currentSessionId && messages.length === 0 && !welcomeSent
+          }
+          onClearChat={handleClearChatConfirm}
+          sendError={sendError}
+          onDismissSendError={() => setSendError(null)}
+        />
+        <MobileSessionListDrawer
+          isOpen={isSessionListOpen}
+          onClose={() => setIsSessionListOpen(false)}
+          onSelectSession={handleSelectSession}
+        />
+        <MobileSearchOverlay
+          isOpen={isSearchOpen}
+          onClose={handleSearchClose}
+          onSearch={handleSearch}
+          placeholder="Search messages..."
+        />
+      </>
+    );
   }
 
   if (isPageLoading) {
