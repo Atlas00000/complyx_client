@@ -1,46 +1,37 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import MobileChatShell from './MobileChatShell';
+import MobileChatHeader from './MobileChatHeader';
+
+interface MobileChatDebugViewProps {
+  title?: string;
+  onHistoryClick?: () => void;
+  onMoreClick?: () => void;
+}
 
 /**
  * MobileChatDebugView
  *
- * Minimal mobile-only debug screen: plain HTML + visible text.
- * Used to verify the chat page loads on mobile and the mobile branch is hit.
- * No Framer Motion, no layout wrappers—just a div and text.
+ * Mobile chat page: shell + header + main content area.
+ * Week 1: shell and header only; main area is a placeholder until Week 2.
  */
-export default function MobileChatDebugView() {
-  const [loadedAt, setLoadedAt] = useState<string>('');
-
-  useEffect(() => {
-    setLoadedAt(new Date().toISOString());
-  }, []);
-
+export default function MobileChatDebugView({
+  title = 'Complyx',
+  onHistoryClick,
+  onMoreClick,
+}: MobileChatDebugViewProps) {
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 16,
-        backgroundColor: '#ffffff',
-        color: '#111827',
-        fontFamily: 'system-ui, sans-serif',
-      }}
-    >
-      <p style={{ fontSize: 24, fontWeight: 700, marginBottom: 8, textAlign: 'center' }}>
-        Mobile chat view – debug
-      </p>
-      <p style={{ fontSize: 14, color: '#6b7280', textAlign: 'center' }}>
-        If you see this, the chat page is loading on mobile.
-      </p>
-      {loadedAt && (
-        <p style={{ fontSize: 12, color: '#9ca3af', marginTop: 16 }}>
-          Loaded at: {loadedAt}
-        </p>
-      )}
-    </div>
+    <MobileChatShell>
+      <MobileChatHeader
+        title={title}
+        onHistoryClick={onHistoryClick}
+        onMoreClick={onMoreClick}
+      />
+      <main className="flex-1 min-h-0 flex flex-col overflow-hidden">
+        <div className="flex-1 flex items-center justify-center p-4 text-center text-gray-500 dark:text-slate-400 text-sm">
+          Chat content will go here (Week 2).
+        </div>
+      </main>
+    </MobileChatShell>
   );
 }
