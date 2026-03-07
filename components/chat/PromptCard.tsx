@@ -69,8 +69,8 @@ export default function PromptCard({ prompt, onClick, index }: PromptCardProps) 
       whileHover={{ scale: 1.02, y: -4 }}
       whileTap={{ scale: 0.98 }}
     >
-      {/* Glassmorphism container */}
-      <div className="relative rounded-2xl overflow-hidden">
+      {/* Glassmorphism container - responsive rounding and padding */}
+      <div className="relative rounded-xl sm:rounded-2xl overflow-hidden">
         {/* Frosted glass background */}
         <div
           className="absolute inset-0 backdrop-blur-xl"
@@ -100,19 +100,19 @@ export default function PromptCard({ prompt, onClick, index }: PromptCardProps) 
         />
         
         {/* Border with category color */}
-        <div className={`absolute inset-0 rounded-2xl border-2 ${getCategoryBorder(prompt.category)}`} />
+        <div className={`absolute inset-0 rounded-xl sm:rounded-2xl border-2 ${getCategoryBorder(prompt.category)}`} />
         
         {/* Inner glow */}
-        <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/10 via-transparent to-transparent dark:from-white/5" />
+        <div className="absolute inset-0 rounded-xl sm:rounded-2xl bg-gradient-to-br from-white/10 via-transparent to-transparent dark:from-white/5" />
         
         {/* Content */}
-        <div className="relative z-10 p-5">
-          <div className="flex items-start gap-3">
+        <div className="relative z-10 p-3 sm:p-4 md:p-5">
+          <div className="flex items-start gap-2 sm:gap-3">
             <div className="flex-shrink-0 mt-0.5">
               <PromptIcon category={prompt.category} />
             </div>
             <div className="flex-1 min-w-0">
-              <h4 className="text-sm font-semibold text-gray-900 dark:text-slate-100 mb-1 group-hover:text-primary dark:group-hover:text-primary-light transition-colors">
+              <h4 className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-slate-100 mb-0.5 sm:mb-1 group-hover:text-primary dark:group-hover:text-primary-light transition-colors leading-snug">
                 {prompt.title}
               </h4>
             </div>
@@ -120,7 +120,7 @@ export default function PromptCard({ prompt, onClick, index }: PromptCardProps) 
         </div>
         
         {/* Enhanced shadow with category color */}
-        <div className={`absolute -inset-1 bg-gradient-to-br ${getCategoryGradient(prompt.category)} rounded-2xl blur-lg opacity-40 -z-10 group-hover:opacity-60 transition-opacity`} />
+        <div className={`absolute -inset-1 bg-gradient-to-br ${getCategoryGradient(prompt.category)} rounded-xl sm:rounded-2xl blur-lg opacity-40 -z-10 group-hover:opacity-60 transition-opacity`} />
       </div>
     </motion.button>
   );

@@ -27,8 +27,8 @@ export default function SuggestedPromptsContainer({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
     >
-      {/* Glassmorphism container */}
-      <div className="relative rounded-3xl overflow-hidden">
+      {/* Glassmorphism container - responsive rounding and padding */}
+      <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden">
         {/* Frosted glass background */}
         <div
           className="absolute inset-0 backdrop-blur-2xl"
@@ -58,21 +58,21 @@ export default function SuggestedPromptsContainer({
         />
         
         {/* Border */}
-        <div className="absolute inset-0 rounded-3xl border border-white/30 dark:border-slate-700/40" />
+        <div className="absolute inset-0 rounded-2xl sm:rounded-3xl border border-white/30 dark:border-slate-700/40" />
         
         {/* Content */}
-        <div className="relative z-10 p-4 md:p-6">
+        <div className="relative z-10 p-3 sm:p-4 md:p-6">
           {/* Header */}
           <motion.div
-            className="mb-4"
+            className="mb-3 sm:mb-4"
             initial={false}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.2 }}
           >
-            <h3 className="text-base font-bold text-gray-900 dark:text-slate-100 mb-1">
+            <h3 className="text-sm sm:text-base font-bold text-gray-900 dark:text-slate-100 mb-0.5 sm:mb-1">
               {title}
             </h3>
-            <p className="text-xs text-gray-600 dark:text-slate-400">
+            <p className="text-xs text-gray-600 dark:text-slate-400 leading-snug">
               {subtitle}
             </p>
           </motion.div>
@@ -82,7 +82,7 @@ export default function SuggestedPromptsContainer({
         </div>
         
         {/* Enhanced shadow */}
-        <div className="absolute -inset-1 bg-gradient-to-br from-primary/10 via-accent/5 to-transparent rounded-3xl blur-xl opacity-50 -z-10" />
+        <div className="absolute -inset-1 bg-gradient-to-br from-primary/10 via-accent/5 to-transparent rounded-2xl sm:rounded-3xl blur-xl opacity-50 -z-10" />
       </div>
     </motion.div>
   );

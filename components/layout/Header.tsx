@@ -67,16 +67,16 @@ const Header = ({
         {/* Inner glow */}
         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent dark:from-primary/10 pointer-events-none" />
         
-        {/* Content */}
+        {/* Content - responsive padding and height */}
         <div className="container-wide relative z-10">
-          <div className="flex items-center justify-between h-16 md:h-20 px-4 lg:px-6 w-full">
+          <div className="flex items-center justify-between h-14 sm:h-16 md:h-20 px-3 sm:px-4 md:px-6 w-full gap-2 min-w-0">
             {/* Left Section - Logo/Title Only */}
-            <div className="flex items-center flex-shrink-0">
+            <div className="flex items-center flex-shrink-0 min-w-0">
               <HeaderLogo logo={logo} title={title} subtitle={subtitle} />
             </div>
-            
-            {/* Right Section - All Actions */}
-            <div className="flex items-center gap-2 md:gap-3 flex-shrink-0 ml-auto">
+
+            {/* Right Section - All Actions; wraps on small screens */}
+            <div className="flex items-center gap-1 sm:gap-2 md:gap-3 flex-shrink-0 ml-auto flex-wrap justify-end">
               {/* Left Actions (moved to right) */}
               {leftActions}
               

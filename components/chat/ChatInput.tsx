@@ -49,8 +49,8 @@ export default function ChatInput({
 
   return (
     <ChatInputContainer onSubmit={handleSubmit}>
-      <div className="p-4 md:p-6">
-        <div className="flex items-end gap-3">
+      <div className="p-3 sm:p-4 md:p-6">
+        <div className="flex items-end gap-2 sm:gap-3 min-w-0">
           {/* Input Field */}
           <div className="relative flex-1">
             <ChatInputField
