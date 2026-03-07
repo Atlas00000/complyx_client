@@ -649,7 +649,7 @@ export default function Home() {
       {/* Search Results Info */}
       {isSearchOpen && hasResults && searchQuery && (
         <motion.div
-          initial={{ opacity: 0, y: -10 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           className="absolute top-14 sm:top-16 left-2 right-2 sm:left-1/2 sm:right-auto sm:transform sm:-translate-x-1/2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg px-3 sm:px-4 py-2 shadow-lg z-10 flex items-center gap-2 sm:gap-4 flex-wrap justify-center"
         >

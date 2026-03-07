@@ -28,13 +28,13 @@ export function usePageLoading(options: UsePageLoadingOptions = {}) {
 
     const hide = () => setIsLoading(false);
 
+    // Hide after min time when deps are ready
     const t1 = setTimeout(() => {
       if (depsReady()) hide();
     }, minLoadingTime);
 
-    const t2 = setTimeout(() => {
-      hide();
-    }, MAX_LOADING_MS);
+    // Guaranteed hide after max time (no dependency on document.readyState or load)
+    const t2 = setTimeout(hide, MAX_LOADING_MS);
 
     return () => {
       clearTimeout(t1);
