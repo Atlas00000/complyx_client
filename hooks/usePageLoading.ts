@@ -1,64 +1,45 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 /**
  * usePageLoading Hook
- * 
- * Manages page-level loading state with minimum display time
- * to ensure smooth transitions and visible loading on refresh
+ *
+ * Shows loading for at least minLoadingTime, then hides. Never blocks on
+ * document.readyState so loading always clears (avoids stuck loading on mobile/SPA).
  */
 interface UsePageLoadingOptions {
   minLoadingTime?: number; // Minimum time to show loading (ms)
-  dependencies?: unknown[]; // Dependencies that should be ready before hiding loading
+  dependencies?: unknown[]; // Optional: delay hide until these are ready
 }
+
+const MAX_LOADING_MS = 3000; // Always clear loading after this (e.g. mobile Safari)
 
 export function usePageLoading(options: UsePageLoadingOptions = {}) {
   const { minLoadingTime = 800, dependencies = [] } = options;
   const [isLoading, setIsLoading] = useState(true);
-  const [startTime] = useState(() => Date.now());
+  const depsRef = useRef(dependencies);
+  depsRef.current = dependencies;
 
   useEffect(() => {
-    // Always show loading for minimum time
-    const checkAndHide = () => {
-      const elapsed = Date.now() - startTime;
-      const remainingTime = Math.max(0, minLoadingTime - elapsed);
-      
-      setTimeout(() => {
-        // Check if dependencies are ready
-        const depsReady = dependencies.length === 0 || 
-          dependencies.every(dep => dep !== null && dep !== undefined);
-        
-        // Also check if page is loaded
-        const pageReady = document.readyState === 'complete';
-        
-        if (depsReady && pageReady) {
-          setIsLoading(false);
-        }
-      }, remainingTime);
+    const depsReady = () =>
+      depsRef.current.length === 0 ||
+      depsRef.current.every((d) => d != null);
+
+    const hide = () => setIsLoading(false);
+
+    const t1 = setTimeout(() => {
+      if (depsReady()) hide();
+    }, minLoadingTime);
+
+    const t2 = setTimeout(() => {
+      hide();
+    }, MAX_LOADING_MS);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
     };
-
-    // If page is already loaded, still wait for min time
-    if (document.readyState === 'complete') {
-      checkAndHide();
-      return undefined;
-    } else {
-      const handleLoad = () => {
-        checkAndHide();
-      };
-      
-      window.addEventListener('load', handleLoad);
-      return () => window.removeEventListener('load', handleLoad);
-    }
-  }, [startTime, minLoadingTime, dependencies]);
-
-  // Fallback: hide loading after max time (2x min time)
-  useEffect(() => {
-    const maxTimer = setTimeout(() => {
-      setIsLoading(false);
-    }, minLoadingTime * 2);
-
-    return () => clearTimeout(maxTimer);
   }, [minLoadingTime]);
 
   return isLoading;
