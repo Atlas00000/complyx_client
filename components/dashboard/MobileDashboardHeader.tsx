@@ -6,6 +6,7 @@ import { getEffectiveTheme, setTheme } from '@/lib/utils/theme';
 interface MobileDashboardHeaderProps {
   title?: string;
   onChatClick?: () => void;
+  onMenuClick?: () => void;
 }
 
 /**
@@ -17,6 +18,7 @@ interface MobileDashboardHeaderProps {
 export default function MobileDashboardHeader({
   title = 'Dashboard',
   onChatClick,
+  onMenuClick,
 }: MobileDashboardHeaderProps) {
   const [isDark, setIsDark] = useState(false);
 
@@ -68,6 +70,19 @@ export default function MobileDashboardHeader({
             </svg>
           )}
         </button>
+        {onMenuClick && (
+          <button
+            type="button"
+            onClick={onMenuClick}
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            title="Menu"
+            aria-label="Open menu"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+            </svg>
+          </button>
+        )}
       </div>
     </header>
   );
