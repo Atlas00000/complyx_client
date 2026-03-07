@@ -5,7 +5,9 @@ import { motion } from 'framer-motion';
 import { useAssessmentStore } from '@/stores/assessmentStore';
 import { useAuthStore } from '@/stores/authStore';
 import { usePageLoading } from '@/hooks/usePageLoading';
+import { useIsMobile } from '@/hooks/useMediaQuery';
 import { useDashboardData } from '@/hooks/useDashboardApi';
+import MobileDashboardView from '@/components/dashboard/MobileDashboardView';
 import { Header, Container } from '@/components/layout';
 import { Button, EmptyState } from '@/components/ui';
 import LoadingScreen from '@/components/ui/loading/LoadingScreen';
@@ -60,8 +62,19 @@ export default function DashboardPage() {
   
   // Page loading state - show for at least 1 second to ensure visibility
   const isPageLoading = usePageLoading({ minLoadingTime: 1000 });
+  const isMobile = useIsMobile();
 
-  // Show loading screen during initial page load
+  // Mobile: dedicated view (shell + header + placeholder in Week 1)
+  if (isMobile) {
+    return (
+      <MobileDashboardView
+        title="Dashboard"
+        onChatClick={() => { window.location.href = '/'; }}
+      />
+    );
+  }
+
+  // Show loading screen during initial page load (desktop only)
   if (isPageLoading) {
     return <LoadingScreen text="Loading Dashboard..." />;
   }
